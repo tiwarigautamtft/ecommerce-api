@@ -2,17 +2,17 @@ import express, { type Express } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
-// import { cors, passport, session } from '@/middlewares';
+import { cors, passport, session } from '@/lib/middlewares';
 // import router from '@/routes';
 
 
 const app: Express = express();
 
 app.use(helmet());
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
-// app.use(session());
-// app.use(passport());
+app.use(session());
+app.use(passport());
 app.use(morgan('dev'));
 
 // app.use(router);
