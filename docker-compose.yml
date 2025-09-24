@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:17.6-alpine3.21
+    container_name: ecomm-postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./docker/postgres/data:/var/lib/postgresql/data
+    env_file: ./docker/postgres/.env.postgres
+    restart: always
+
+  redis:
+    image: redis:8.2.0-alpine
+    container_name: ecomm-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./docker/redis/data:/data
+    restart: always
+    command: [
+      "redis-server",
+      "/usr/local/etc/redis/redis.conf",
+      "--requirepass ${REDIS_PASSWORD}"
+    ]
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
+  # memcached:
+  #   image: memcached:1.6.39-alpine3.22
+  #   ports:
+  #     - "11211:11211"
+  #   restart: always
+  #   command:
+  #     - --conn-limit=1024
+  #     - --memory-limit=64
+  #     - --threads=4
+  #     - -vv
