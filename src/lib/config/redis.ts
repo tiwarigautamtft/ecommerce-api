@@ -2,7 +2,7 @@ import { type RedisClientType, createClient } from 'redis';
 
 import { env } from './env';
 
-const redisClient: RedisClientType = createClient({
+export const redisClient: RedisClientType = createClient({
 	url: env.REDIS_URL,
 	socket: {
 		reconnectStrategy: (retries) => Math.min(retries * 50, 1000),
@@ -32,5 +32,3 @@ redisClient.on('end', () => {
 		console.error('Failed to connect to Redis:', error);
 	}
 })();
-
-export { redisClient };

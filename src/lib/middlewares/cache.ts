@@ -2,7 +2,7 @@ import { RequestHandler } from 'express';
 import { CurriedFunction2 } from 'lodash';
 import { curry } from 'lodash-es';
 
-import { redisClient } from '@/config/redis';
+import { redisClient } from '@/lib/config/redis';
 
 export function cache(
 	ttlSeconds: number,

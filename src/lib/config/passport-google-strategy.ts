@@ -5,10 +5,9 @@ import {
 	type VerifyCallback,
 } from 'passport-google-oauth20';
 
-import { env } from './env';
-import sequelize from './sequelize';
+import { env, sequelize } from '.';
 
-const googleStrategy = new Strategy(
+export const googleStrategy = new Strategy(
 	{
 		clientID: env.GOOGLE_CLIENT_ID,
 		clientSecret: env.GOOGLE_CLIENT_SECRET,
@@ -16,5 +15,3 @@ const googleStrategy = new Strategy(
 	},
 	() => {}
 );
-
-export default googleStrategy;

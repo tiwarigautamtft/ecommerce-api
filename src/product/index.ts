@@ -1,0 +1,5 @@
+export * from "./product.controller"
+export * from "./product.router"
+export * from "./product.model"
+export * from "./product_tag.model"
+export * from "./tag.model"

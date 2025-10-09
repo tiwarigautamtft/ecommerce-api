@@ -2,9 +2,10 @@ import express, { type Express } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
+import '@/lib/config/database';
 import { cors, passport, session } from '@/lib/middlewares';
-// import router from '@/routes';
 
+import router from './router';
 
 const app: Express = express();
 
@@ -15,7 +16,7 @@ app.use(session());
 app.use(passport());
 app.use(morgan('dev'));
 
-// app.use(router);
+app.use(router);
 
 export function startServer(port: string | number) {
 	app.listen(port, (error) => {

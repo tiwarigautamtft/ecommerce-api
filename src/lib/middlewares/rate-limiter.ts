@@ -2,8 +2,8 @@ import { rateLimit } from 'express-rate-limit';
 import ms from 'ms';
 import { RedisStore, SendCommandFn } from 'rate-limit-redis';
 
-import { env } from '@/config/env';
-import { redisClient } from '@/config/redis';
+import { env } from '@/lib/config/env';
+import { redisClient } from '@/lib/config/redis';
 
 const sendCommand: SendCommandFn = (...args: string[]) => {
 	return redisClient.sendCommand(args);

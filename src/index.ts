@@ -1,4 +1,4 @@
-import { env } from '@/config/env';
+import { env } from '@/lib/config/env';
 
 import { startServer } from './server';
 

@@ -3,8 +3,8 @@ import { RequestHandler } from 'express';
 import expressSession, { SessionOptions } from 'express-session';
 import ms from 'ms';
 
-import { env } from '@/config/env';
-import { redisClient } from '@/config/redis';
+import { env } from '@/lib/config/env';
+import { redisClient } from '@/lib/config/redis';
 
 const sessionOptions: SessionOptions = {
 	name: 'sid',
