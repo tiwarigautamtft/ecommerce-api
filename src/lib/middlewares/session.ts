@@ -15,11 +15,11 @@ const sessionOptions: SessionOptions = {
 	}),
 	secret: env.SESSION_SECRET,
 	resave: false,
-	saveUninitialized: false,
+	saveUninitialized: true,
 	cookie: {
 		secure: env.NODE_ENV === 'production',
-		httpOnly: env.NODE_ENV === 'production',
-		sameSite: true,
+		httpOnly: true,
+		sameSite: 'lax',
 		maxAge: ms(env.SESSION_EXPIRY),
 	},
 };
