@@ -2,6 +2,10 @@ import { RequestHandler } from 'express';
 import passport from 'passport';
 
 export const authController: AuthController = {
+	handleAuthCheck: (req, res) => {
+		res.send(req.isAuthenticated() ? 'Authenticated' : 'Not Authenticated');
+	},
+
 	handleGoogleLogin: passport.authenticate('google', {
 		scope: ['openid', 'profile', 'email'],
 	}),
@@ -25,6 +29,7 @@ export const authController: AuthController = {
 };
 
 interface AuthController {
+	handleAuthCheck: RequestHandler;
 	handleGoogleLogin: RequestHandler;
 	handleGoogleCallback: RequestHandler;
 	handleLogout: RequestHandler;

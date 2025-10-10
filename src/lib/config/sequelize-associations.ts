@@ -1,4 +1,4 @@
-import { OauthAccount } from '@/auth/auth.model';
+import { OAuthAccount } from '@/auth/auth.model';
 import { Buyer } from '@/buyer/buyer.model';
 import { Cart } from '@/cart/cart.model';
 import { CartItem } from '@/cart/cart_item.model';
@@ -17,7 +17,7 @@ import { User } from '@/user/user.model';
 export function defineAssociations() {
 	const models = {
 		User,
-		OauthAccount,
+		OAuthAccount,
 		Role,
 		UserRole,
 		Seller,

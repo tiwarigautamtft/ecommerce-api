@@ -11,9 +11,9 @@ import {
 import { Provider } from '@/auth/auth.enum';
 import { sequelize } from '@/lib/config';
 
-export class OauthAccount extends Model<
-	InferAttributes<OauthAccount>,
-	InferCreationAttributes<OauthAccount>
+export class OAuthAccount extends Model<
+	InferAttributes<OAuthAccount>,
+	InferCreationAttributes<OAuthAccount>
 > {
 	declare id: CreationOptional<string>;
 	declare userId: ForeignKey<string>;
@@ -21,11 +21,11 @@ export class OauthAccount extends Model<
 	declare providerSub: string;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		OauthAccount.belongsTo(models.User, { foreignKey: 'userId' });
+		OAuthAccount.belongsTo(models.User, { foreignKey: 'userId' });
 	}
 }
 
-OauthAccount.init(
+OAuthAccount.init(
 	{
 		id: {
 			type: DataTypes.UUID,

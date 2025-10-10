@@ -11,7 +11,7 @@ export const devSync = async (s: Sequelize) => {
 
 		if (env.NODE_ENV === 'development') {
 			try {
-				await s.sync({ alter: true });
+				await s.sync({ alter: true, logging: false });
 				console.log('Database sync successful');
 			} catch (error) {
 				console.error("Couldn't sync database", error);

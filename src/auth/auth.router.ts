@@ -1,11 +1,12 @@
 import { Router } from 'express';
 
-import { authController } from '.';
 import { isAuthenticatedGuard, isGuestGuard } from '@/lib/guards';
+
+import { authController } from '.';
 
 export const authRouter: Router = Router();
 
-authRouter.get('/check', (req, res) => { res.send('Auth check'); });
+authRouter.get('/check', authController.handleAuthCheck);
 
 authRouter.get('/login/google', isGuestGuard, authController.handleGoogleLogin);
 authRouter.get(
@@ -13,4 +14,4 @@ authRouter.get(
 	isGuestGuard,
 	authController.handleGoogleCallback,
 );
-authRouter.get('/logout', isAuthenticatedGuard, authController.handleLogout);
+authRouter.post('/logout', isAuthenticatedGuard, authController.handleLogout);
