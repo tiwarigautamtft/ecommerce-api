@@ -21,7 +21,11 @@ export class OAuthAccount extends Model<
 	declare providerSub: string;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		OAuthAccount.belongsTo(models.User, { foreignKey: 'userId' });
+		OAuthAccount.belongsTo(models.User, {
+			foreignKey: 'userId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
 	}
 }
 

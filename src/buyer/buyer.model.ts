@@ -24,7 +24,11 @@ export class Buyer extends Model<
 	declare phone: string;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		Buyer.belongsTo(models.User, { foreignKey: 'userId' });
+		Buyer.belongsTo(models.User, {
+			foreignKey: 'userId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
 		Buyer.hasOne(models.Cart, { foreignKey: 'buyerId' });
 		Buyer.hasMany(models.Order, { foreignKey: 'buyerId' });
 		Buyer.hasMany(models.SalesOrder, { foreignKey: 'buyerId' });
@@ -41,7 +45,6 @@ Buyer.init(
 		userId: {
 			type: DataTypes.UUID,
 			allowNull: false,
-			unique: true,
 			references: { model: 'users', key: 'id' },
 		},
 		addressLineOne: { type: DataTypes.STRING(255), allowNull: false },
@@ -56,5 +59,11 @@ Buyer.init(
 		tableName: 'buyers',
 		timestamps: true,
 		underscored: true,
+		indexes: [{ unique: true, fields: ['user_id'] }],
+		scopes: {
+			withoutUserId: {
+				attributes: { exclude: ['userId'] },
+			},
+		},
 	},
 );

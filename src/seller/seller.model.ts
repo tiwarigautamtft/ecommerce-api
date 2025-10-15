@@ -21,7 +21,11 @@ export class Seller extends Model<
 	declare updatedAt: CreationOptional<Date>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		Seller.belongsTo(models.User, { foreignKey: 'userId' });
+		Seller.belongsTo(models.User, {
+			foreignKey: 'userId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
 		Seller.hasMany(models.Product, { foreignKey: 'sellerId' });
 		Seller.hasMany(models.SalesOrder, { foreignKey: 'sellerId' });
 		Seller.hasMany(models.OrderItem, { foreignKey: 'sellerId' });
@@ -38,7 +42,6 @@ Seller.init(
 		userId: {
 			type: DataTypes.UUID,
 			allowNull: false,
-			unique: true,
 			references: { model: 'users', key: 'id' },
 		},
 		storeName: { type: DataTypes.STRING, allowNull: false },
@@ -50,5 +53,11 @@ Seller.init(
 		tableName: 'sellers',
 		timestamps: true,
 		underscored: true,
+		indexes: [{ unique: true, fields: ['user_id'] }],
+		scopes: {
+			withoutUserId: {
+				attributes: { exclude: ['userId'] },
+			},
+		},
 	},
 );

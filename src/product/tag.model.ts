@@ -18,6 +18,7 @@ export class Tag extends Model<
 
 	static associate(models: Record<string, ModelStatic<any>>) {
 		Tag.hasMany(models.ProductTag, { foreignKey: 'tagId' });
+		Tag.belongsToMany(models.Product, { through: 'ProductTag' });
 	}
 }
 
@@ -28,12 +29,13 @@ Tag.init(
 			primaryKey: true,
 			defaultValue: sequelize.literal('uuidv7()'),
 		},
-		name: { type: DataTypes.STRING, allowNull: false, unique: true },
+		name: { type: DataTypes.STRING, allowNull: false },
 	},
 	{
 		sequelize,
 		tableName: 'tags',
 		timestamps: true,
 		underscored: true,
+		indexes: [{ unique: true, fields: ['name'] }],
 	},
 );

@@ -19,8 +19,16 @@ export class UserRole extends Model<
 	declare roleId: ForeignKey<string>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		UserRole.belongsTo(models.User, { foreignKey: 'userId' });
-		UserRole.belongsTo(models.Role, { foreignKey: 'roleId' });
+		UserRole.belongsTo(models.User, {
+			foreignKey: 'userId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
+		UserRole.belongsTo(models.Role, {
+			foreignKey: 'roleId',
+			onDelete: 'RESTRICT',
+			onUpdate: 'CASCADE',
+		});
 	}
 }
 
@@ -47,6 +55,9 @@ UserRole.init(
 		tableName: 'user_roles',
 		timestamps: true,
 		underscored: true,
-		indexes: [{ unique: true, fields: ['user_id', 'role_id'] }],
+		indexes: [
+			{ unique: true, fields: ['user_id', 'role_id'] },
+			{ fields: ['user_id'] },
+		],
 	},
 );

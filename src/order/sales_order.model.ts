@@ -21,9 +21,21 @@ export class SalesOrder extends Model<
 	declare totalAmount: number;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		SalesOrder.belongsTo(models.Seller, { foreignKey: 'sellerId' });
-		SalesOrder.belongsTo(models.Buyer, { foreignKey: 'buyerId' });
-		SalesOrder.belongsTo(models.Order, { foreignKey: 'orderId' });
+		SalesOrder.belongsTo(models.Seller, {
+			foreignKey: 'sellerId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
+		SalesOrder.belongsTo(models.Buyer, {
+			foreignKey: 'buyerId',
+			onDelete: 'NO ACTION',
+			onUpdate: 'CASCADE',
+		});
+		SalesOrder.belongsTo(models.Order, {
+			foreignKey: 'orderId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
 	}
 }
 

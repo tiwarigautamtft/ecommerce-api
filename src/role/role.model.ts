@@ -18,7 +18,7 @@ export class Role extends Model<
 	declare description: CreationOptional<string | null>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		Role.hasMany(models.UserRole, { foreignKey: 'roleId' });
+		Role.belongsToMany(models.User, { through: models.UserRole, as: 'users' });
 	}
 }
 
@@ -29,7 +29,7 @@ Role.init(
 			primaryKey: true,
 			defaultValue: sequelize.literal('uuidv7()'),
 		},
-		name: { type: DataTypes.STRING, allowNull: false, unique: true },
+		name: { type: DataTypes.STRING, allowNull: false },
 		description: { type: DataTypes.STRING, allowNull: true },
 	},
 	{
@@ -37,5 +37,6 @@ Role.init(
 		tableName: 'roles',
 		timestamps: true,
 		underscored: true,
+		indexes: [{ unique: true, fields: ['name'] }],
 	},
 );

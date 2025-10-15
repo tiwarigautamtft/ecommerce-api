@@ -18,7 +18,11 @@ export class Cart extends Model<
 	declare buyerId: ForeignKey<string>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		Cart.belongsTo(models.Buyer, { foreignKey: 'buyerId' });
+		Cart.belongsTo(models.Buyer, {
+			foreignKey: 'buyerId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
 		Cart.hasMany(models.CartItem, { foreignKey: 'cartId' });
 	}
 }

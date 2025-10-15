@@ -20,8 +20,16 @@ export class CartItem extends Model<
 	declare quantity: number;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		CartItem.belongsTo(models.Cart, { foreignKey: 'cartId' });
-		CartItem.belongsTo(models.Product, { foreignKey: 'productId' });
+		CartItem.belongsTo(models.Cart, {
+			foreignKey: 'cartId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
+		CartItem.belongsTo(models.Product, {
+			foreignKey: 'productId',
+			onDelete: 'SET NULL',
+			onUpdate: 'CASCADE',
+		});
 	}
 }
 

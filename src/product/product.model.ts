@@ -24,10 +24,15 @@ export class Product extends Model<
 	declare updatedAt: CreationOptional<Date>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		Product.belongsTo(models.Seller, { foreignKey: 'sellerId' });
+		Product.belongsTo(models.Seller, {
+			foreignKey: 'sellerId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
 		Product.hasMany(models.ProductTag, { foreignKey: 'productId' });
 		Product.hasMany(models.OrderItem, { foreignKey: 'productId' });
 		Product.hasMany(models.CartItem, { foreignKey: 'productId' });
+		Product.belongsToMany(models.Tag, { through: 'ProductTag' });
 	}
 }
 

@@ -1,6 +1,7 @@
 import {
 	CreationOptional,
 	DataTypes,
+	ForeignKey,
 	InferAttributes,
 	InferCreationAttributes,
 	Model,
@@ -8,6 +9,7 @@ import {
 } from 'sequelize';
 
 import { sequelize } from '@/lib/config';
+import { Role } from '@/role';
 
 export class User extends Model<
 	InferAttributes<User>,
@@ -22,7 +24,10 @@ export class User extends Model<
 	declare updatedAt: CreationOptional<Date>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		User.hasOne(models.Seller);
+		User.hasOne(models.Seller, { foreignKey: 'userId' });
+		User.hasOne(models.Buyer, { foreignKey: 'userId' });
+		User.hasMany(models.OAuthAccount, { foreignKey: 'userId' });
+		User.belongsToMany(models.Role, { through: models.UserRole, as: 'roles' });
 	}
 }
 
@@ -33,7 +38,7 @@ User.init(
 			primaryKey: true,
 			defaultValue: sequelize.literal('uuidv7()'),
 		},
-		email: { type: DataTypes.STRING, allowNull: false, unique: true },
+		email: { type: DataTypes.STRING, allowNull: false },
 		emailVerified: {
 			type: DataTypes.BOOLEAN,
 			allowNull: false,
@@ -49,5 +54,19 @@ User.init(
 		tableName: 'users',
 		timestamps: true,
 		underscored: true,
+		indexes: [{ unique: true, fields: ['email'] }],
+		scopes: {
+			sessionUser: {
+				include: [
+					{
+						model: Role,
+						as: 'roles',
+						attributes: ['name'],
+						through: { attributes: [] },
+					},
+				],
+				attributes: { exclude: ['createdAt', 'updatedAt'] },
+			},
+		},
 	},
 );

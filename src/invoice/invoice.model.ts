@@ -22,7 +22,11 @@ export class Invoice extends Model<
 	declare status: CreationOptional<InvoiceStatus>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		Invoice.belongsTo(models.Order, { foreignKey: 'orderId' });
+		Invoice.belongsTo(models.Order, {
+			foreignKey: 'orderId',
+			onDelete: 'SET NULL',
+			onUpdate: 'CASCADE',
+		});
 	}
 }
 

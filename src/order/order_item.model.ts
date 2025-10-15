@@ -27,9 +27,21 @@ export class OrderItem extends Model<
 	declare updatedAt: CreationOptional<Date>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		OrderItem.belongsTo(models.Order, { foreignKey: 'orderId' });
-		OrderItem.belongsTo(models.Product, { foreignKey: 'productId' });
-		OrderItem.belongsTo(models.Seller, { foreignKey: 'sellerId' });
+		OrderItem.belongsTo(models.Order, {
+			foreignKey: 'orderId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
+		OrderItem.belongsTo(models.Product, {
+			foreignKey: 'productId',
+			onDelete: 'NO ACTION',
+			onUpdate: 'CASCADE',
+		});
+		OrderItem.belongsTo(models.Seller, {
+			foreignKey: 'sellerId',
+			onDelete: 'NO ACTION',
+			onUpdate: 'CASCADE',
+		});
 	}
 }
 

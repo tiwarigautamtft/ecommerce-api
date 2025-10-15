@@ -18,10 +18,7 @@ export class ProductTag extends Model<
 	declare productId: ForeignKey<string>;
 	declare tagId: ForeignKey<string>;
 
-	static associate(models: Record<string, ModelStatic<any>>) {
-		ProductTag.belongsTo(models.Product, { foreignKey: 'productId' });
-		ProductTag.belongsTo(models.Tag, { foreignKey: 'tagId' });
-	}
+	// static associate(models: Record<string, ModelStatic<any>>) {}
 }
 
 ProductTag.init(
