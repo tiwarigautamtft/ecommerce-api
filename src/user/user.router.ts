@@ -7,13 +7,24 @@ import { userController } from '.';
 
 export const userRouter: Router = Router();
 
-const cacheTwoMin = cacheCurried(sec('2 min'));
+// const cacheTenSeconds = cacheCurried(sec('10 sec'));
 
-userRouter.get(
-	'/profile',
-	cacheTwoMin('user:'),
-	userController.getCurrentUserProfile,
+userRouter.get('/me/profile', userController.getCurrentUser);
+userRouter.delete('/me/profile', userController.deleteCurrentUser);
+
+userRouter.get('/me/profile/seller', userController.getCurrentSellerProfile);
+userRouter.post(
+	'/me/profile/seller',
+	userController.createCurrentSellerProfile,
 );
-userRouter.get('/:id', userController.getUser);
-userRouter.patch('/:id', userController.updateUser);
-userRouter.delete('/:id', userController.deleteUser);
+userRouter.delete(
+	'/me/profile/seller',
+	userController.deleteCurrentSellerProfile,
+);
+
+userRouter.get('/me/profile/buyer', userController.getCurrentBuyerProfile);
+userRouter.post('/me/profile/buyer', userController.createCurrentBuyerProfile);
+userRouter.delete(
+	'/me/profile/buyer',
+	userController.deleteCurrentBuyerProfile,
+);

@@ -16,7 +16,7 @@
 		"sourceMap": true,
 		"preserveSymlinks": true,
 		"removeComments": true,
-		"typeRoots": ["./src/types", "./node_modules/@types"],
+		"typeRoots": ["./src/lib/types", "./node_modules/@types"],
 		"paths": {
 			"@/*": ["src/*"]
 		}

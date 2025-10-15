@@ -7,7 +7,10 @@ import {
 
 import { OAuthAccount, Provider } from '@/auth';
 import { env, sequelize } from '@/lib/config';
+import { Role, UserRole } from '@/role';
 import { User } from '@/user';
+
+import { SessionUser } from '../types';
 
 export const googleStrategy = new Strategy(
 	{
@@ -22,54 +25,59 @@ export const googleStrategy = new Strategy(
 		profile: Profile,
 		cb: VerifyCallback,
 	) {
+		const email = profile._json.email || profile.emails![0]!.value;
+		let sessionUser: SessionUser | null | undefined = null;
+
 		let oauthAccount = await OAuthAccount.findOne({
 			where: { providerSub: profile.id },
 		});
 
-		if (oauthAccount === null) {
-			const results = await sequelize.transaction(async (transaction) => {
-				const email = profile._json.email || profile.emails![0]!.value;
-				const [user, _wasCreated] = await User.findOrCreate({
-					where: {
-						email,
-					},
-					defaults: {
-						email,
-						emailVerified:
-							profile._json.email_verified ||
-							profile.emails![0]!.verified ||
-							false,
-						name: profile.displayName,
-						avatarUrl: profile._json.picture,
-					},
-					transaction,
-				});
+		let existingUser: User | null = null;
 
-				oauthAccount = await OAuthAccount.create(
-					{
-						provider: profile.provider as Provider,
-						providerSub: profile.id,
-						userId: user.id,
-					},
-					{ transaction },
-				);
+		if (!oauthAccount) {
+			// If no OAuthAccount, check if a user with the same email exists
+			existingUser = await User.scope('sessionUser').findOne({
+				where: { email },
+			});
+		} else {
+			// If OAuthAccount exists, fetch the associated user
+			existingUser = await User.scope('sessionUser').findByPk(
+				oauthAccount.userId,
+			);
+		}
 
-				return user;
+		// If no user exists, create a new one
+		if (!existingUser) {
+			const newUser = await User.create({
+				email,
+				emailVerified:
+					profile._json.email_verified || profile.emails![0]!.verified || false,
+				name: profile.displayName,
+				avatarUrl: profile._json.picture,
 			});
 
-			cb(null, results.dataValues);
-		}
+			const {
+				createdAt: _,
+				updatedAt: __,
+				...userWithoutTimestamps
+			} = newUser.toJSON();
 
-		if (oauthAccount === null) {
-			cb(new Error("Couldn't create account. Try again"), false);
+			sessionUser = userWithoutTimestamps;
+			sessionUser.roles = [];
 		} else {
-			const user = await User.findByPk(oauthAccount.userId);
-
-			if (user === null) {
-				cb(new Error("Couldn't find user"), false);
-			} else {
-				cb(null, user.dataValues);
-			}
+			sessionUser = existingUser.toJSON();
+			sessionUser.roles = existingUser.roles?.map((role) => role.name);
 		}
+
+		if (!oauthAccount) {
+			oauthAccount = await OAuthAccount.create({
+				provider: profile.provider as Provider,
+				providerSub: profile.id,
+				userId: sessionUser.id,
+			});
+		}
+
+		cb(null, sessionUser);
+		return;
 	},
 );
