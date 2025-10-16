@@ -45,7 +45,14 @@ Product.init(
 		},
 		name: { type: DataTypes.STRING, allowNull: false },
 		description: { type: DataTypes.TEXT, allowNull: true },
-		price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+		price: {
+			type: DataTypes.DECIMAL(10, 2),
+			allowNull: false,
+			get() {
+				const rawValue = this.getDataValue('price');
+				return parseFloat(`${rawValue}`);
+			},
+		},
 		quantity: { type: DataTypes.INTEGER, allowNull: false },
 		createdAt: DataTypes.DATE,
 		updatedAt: DataTypes.DATE,
@@ -55,5 +62,12 @@ Product.init(
 		tableName: 'products',
 		timestamps: true,
 		underscored: true,
+		indexes: [
+			{ unique: true, fields: ['id', 'seller_id'] },
+			{ fields: ['seller_id'] },
+			{ fields: ['name'] },
+			{ fields: ['price'] },
+			{ unique: true, fields: ['name', 'seller_id'] },
+		],
 	},
 );
