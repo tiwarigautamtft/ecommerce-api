@@ -189,10 +189,11 @@ export const userController: UserController = {
 
 		if (validationResult.error) {
 			console.error('Input validation failed:', validationResult.error);
-			return res.status(422).json({
+			res.status(422).json({
 				message: 'Invalid input data.',
 				error: z.treeifyError(validationResult.error),
 			});
+			return;
 		}
 
 		const data = validationResult.data;

@@ -15,7 +15,8 @@ export function cache(
 			const cached = await redisClient.get(key);
 			if (cached) {
 				console.log('cache hit: ', cached);
-				return res.status(200).json(JSON.parse(cached));
+				res.status(200).json(JSON.parse(cached));
+				return;
 			}
 
 			const originalJson = res.json.bind(res);
