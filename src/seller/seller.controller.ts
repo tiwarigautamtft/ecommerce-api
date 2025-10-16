@@ -1,10 +1,11 @@
 import assert from 'assert';
 import { RequestHandler } from 'express';
+import { InferAttributes, Op, WhereOptions } from 'sequelize';
 import z from 'zod';
 
 import { Product } from '@/product';
 
-import { CreateProductDto, UpdateProductDto } from './dto';
+import { CreateProductDto, SearchProductDto, UpdateProductDto } from './dto';
 import { Seller } from './seller.model';
 
 export const sellerController: SellerController = {
@@ -154,6 +155,61 @@ export const sellerController: SellerController = {
 
 		res.status(200).json({ message: 'Product deleted' });
 	},
+
+	searchOwnProducts: async (req, res) => {
+		assert(req.user, 'User must be authenticated');
+
+		const seller = await Seller.findOne({ where: { userId: req.user?.id } });
+		if (!seller) {
+			res.status(404).json({ message: 'Seller profile not found.' });
+			return;
+		}
+
+		const validationResult = await SearchProductDto.safeParseAsync(req.query);
+		if (validationResult.error) {
+			console.error('Input validation failed:', validationResult.error);
+			res.status(422).json({
+				message: 'Invalid query parameters.',
+				error: z.treeifyError(validationResult.error),
+			});
+			return;
+		}
+
+		const data = validationResult.data;
+		const { name, sortBy, sortOrder, minPrice, maxPrice, page, limit } = data;
+
+		const whereClause:
+			| WhereOptions<
+					InferAttributes<
+						Product,
+						{
+							omit: never;
+						}
+					>
+			  >
+			| undefined = {
+			sellerId: seller.id,
+			...(name ? { name: { [Op.iLike]: `%${name}%` } } : {}),
+			...(minPrice !== undefined ? { price: { [Op.gte]: minPrice } } : {}),
+			...(maxPrice !== undefined ? { price: { [Op.lte]: maxPrice } } : {}),
+		};
+
+		const { rows: products, count } = await Product.findAndCountAll({
+			limit,
+			offset: (page - 1) * limit,
+			where: whereClause,
+			order: [[sortBy, sortOrder.toUpperCase()]],
+		});
+
+		const searchResult = {
+			total: count,
+			page,
+			limit,
+			products,
+		};
+
+		res.status(200).json(searchResult);
+	},
 };
 
 interface SellerController {
@@ -166,4 +222,6 @@ interface SellerController {
 	updateProductById: RequestHandler;
 	deleteAllProducts: RequestHandler;
 	deleteProductById: RequestHandler;
+
+	searchOwnProducts: RequestHandler;
 }
