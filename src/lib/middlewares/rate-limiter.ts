@@ -12,7 +12,7 @@ const sendCommand: SendCommandFn = (...args: string[]) => {
 const rateLimiterStores = {
 	global: new RedisStore({
 		prefix: 'rl:global:',
-		sendCommand
+		sendCommand,
 	}),
 	auth: new RedisStore({
 		prefix: 'rl:auth:',
@@ -80,10 +80,10 @@ const apiRateLimit = rateLimit({
 	},
 	standardHeaders: true,
 	legacyHeaders: false,
-	skip: (req) => {
-		// Skip rate limiting for admin users
-		return !!req.user && req.user.role === 'admin';
-	},
+	// skip: (req) => {
+	// 	// Skip rate limiting for admin users
+	// 	return !!req.user && req.user.roles.includes('admin');
+	// },
 });
 
 export { globalRateLimit, authRateLimit, uploadRateLimit, apiRateLimit };

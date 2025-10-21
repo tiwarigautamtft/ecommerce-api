@@ -9,8 +9,8 @@ export const redisClient: RedisClientType = createClient({
 	},
 });
 
-redisClient.on('error', (err) => {
-	console.error('Redis Client Error:', err);
+redisClient.on('error', (error) => {
+	console.error('Redis Client Error:', error);
 });
 
 redisClient.on('connect', () => {
@@ -32,3 +32,4 @@ redisClient.on('end', () => {
 		console.error('Failed to connect to Redis:', error);
 	}
 })();
+

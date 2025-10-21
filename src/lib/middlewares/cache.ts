@@ -1,4 +1,5 @@
 import { RequestHandler } from 'express';
+import { StatusCodes } from 'http-status-codes';
 import { CurriedFunction2 } from 'lodash';
 import { curry } from 'lodash-es';
 
@@ -15,7 +16,7 @@ export function cache(
 			const cached = await redisClient.get(key);
 			if (cached) {
 				console.log('cache hit: ', cached);
-				res.status(200).json(JSON.parse(cached));
+				res.status(StatusCodes.OK).json(JSON.parse(cached));
 				return;
 			}
 
@@ -30,10 +31,10 @@ export function cache(
 				return originalJson(body);
 			};
 
-			return next();
-		} catch (err) {
-			console.error('Cache error:', err);
-			return next();
+			next();
+		} catch (error) {
+			console.error('Cache error:', error);
+			next();
 		}
 	};
 }

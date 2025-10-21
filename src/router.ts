@@ -1,7 +1,8 @@
 import { Router } from 'express';
 
-import { authRouter } from '@/auth';
-import { isAuthenticatedGuard, isGuestGuard } from '@/lib/guards';
+import { authController, authRouter } from '@/auth';
+import { buyerRouter } from '@/buyer';
+import { isAuthenticatedGuard, isBuyerGuard } from '@/lib/guards';
 import { isSellerGuard } from '@/lib/guards';
 import {
 	apiRateLimit,
@@ -14,15 +15,22 @@ import { userRouter } from '@/user';
 const router: Router = Router();
 
 router.use(globalRateLimit);
-router.get('/', (_, res) => res.send('check'));
+router.get('/', authController.handleAuthCheck);
 router.use('/api/auth', authRateLimit, authRouter);
 router.use('/api/users', isAuthenticatedGuard, apiRateLimit, userRouter);
 router.use(
-	'/api/sellers',
+	'/api/seller',
 	isAuthenticatedGuard,
 	isSellerGuard,
 	apiRateLimit,
 	sellerRouter,
+);
+router.use(
+	'/api/buyer',
+	isAuthenticatedGuard,
+	isBuyerGuard,
+	apiRateLimit,
+	buyerRouter,
 );
 
 export default router;

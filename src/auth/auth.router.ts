@@ -14,4 +14,5 @@ authRouter.get(
 	isGuestGuard,
 	authController.handleGoogleCallback,
 );
+
 authRouter.post('/logout', isAuthenticatedGuard, authController.handleLogout);

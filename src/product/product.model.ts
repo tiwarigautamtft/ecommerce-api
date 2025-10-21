@@ -31,8 +31,18 @@ export class Product extends Model<
 		});
 		Product.hasMany(models.ProductTag, { foreignKey: 'productId' });
 		Product.hasMany(models.OrderItem, { foreignKey: 'productId' });
-		Product.hasMany(models.CartItem, { foreignKey: 'productId' });
-		Product.belongsToMany(models.Tag, { through: 'ProductTag' });
+		// Product.hasMany(models.CartItem, { foreignKey: 'productId' });
+
+		Product.belongsToMany(models.Tag, {
+			through: models.ProductTag,
+			as: 'tags',
+		});
+		Product.belongsToMany(models.Buyer, {
+			through: models.CartItem,
+			as: 'cartItems',
+			onDelete: 'SET NULL',
+			onUpdate: 'CASCADE',
+		});
 	}
 }
 

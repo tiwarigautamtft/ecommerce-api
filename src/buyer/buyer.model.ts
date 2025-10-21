@@ -29,9 +29,16 @@ export class Buyer extends Model<
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',
 		});
-		Buyer.hasOne(models.Cart, { foreignKey: 'buyerId' });
+
 		Buyer.hasMany(models.Order, { foreignKey: 'buyerId' });
 		Buyer.hasMany(models.SalesOrder, { foreignKey: 'buyerId' });
+
+		Buyer.belongsToMany(models.Product, {
+			through: models.CartItem,
+			as: 'cartItems',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
 	}
 }
 

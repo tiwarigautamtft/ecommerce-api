@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 
 import '@/lib/config/database';
-import { cors, passport, session } from '@/lib/middlewares';
+import { cors, globalErrorHandler, passport, session } from '@/lib/middlewares';
 
 import router from './router';
 
@@ -17,6 +17,7 @@ app.use(passport());
 app.use(morgan('dev'));
 
 app.use(router);
+app.use(globalErrorHandler);
 
 export function startServer(port: string | number) {
 	app.listen(port, (error) => {

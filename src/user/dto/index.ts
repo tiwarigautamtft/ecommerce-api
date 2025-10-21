@@ -1,1 +1,1 @@
-export * from './create-buyer-profile.dto';
+export * from './update-user.dto';

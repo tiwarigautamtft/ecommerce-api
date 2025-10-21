@@ -1,6 +1,5 @@
 import { OAuthAccount } from '@/auth/auth.model';
 import { Buyer } from '@/buyer/buyer.model';
-import { Cart } from '@/cart/cart.model';
 import { CartItem } from '@/cart/cart_item.model';
 import { Invoice } from '@/invoice/invoice.model';
 import { Order } from '@/order/order.model';
@@ -25,7 +24,6 @@ export function defineAssociations() {
 		Product,
 		Tag,
 		ProductTag,
-		Cart,
 		CartItem,
 		Order,
 		OrderItem,

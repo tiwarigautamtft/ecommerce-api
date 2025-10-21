@@ -1,9 +1,10 @@
 import { RequestHandler } from 'express';
+import { StatusCodes } from 'http-status-codes';
 import passport from 'passport';
 
 export const authController: AuthController = {
 	handleAuthCheck: (req, res) => {
-		res.send(req.isAuthenticated() ? 'Authenticated' : 'Not Authenticated');
+		res.send(req.isAuthenticated() ? req.user.email : 'Not Authenticated');
 	},
 
 	handleGoogleLogin: passport.authenticate('google', {
@@ -19,13 +20,13 @@ export const authController: AuthController = {
 	}),
 
 	handleLogout: (req, res) =>
-		req.logout((err) => {
-			if (err) {
-				res.status(500).json({ message: 'Logout Failed', error: err });
-				return;
+		req.logout((error) => {
+			if (error) {
+				req.user = undefined;
+				console.error('User logged out manually');
 			}
 
-			res.status(200).json({ message: 'Logout Successful' });
+			res.status(StatusCodes.OK).json({ message: 'Logout Successful' });
 		}),
 };
 

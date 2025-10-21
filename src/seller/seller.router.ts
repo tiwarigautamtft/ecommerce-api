@@ -1,13 +1,8 @@
 import { Router } from 'express';
 
-import { cacheCurried } from '@/lib/middlewares/cache';
-import { sec } from '@/lib/utils';
-
 import { sellerController } from '.';
 
 export const sellerRouter: Router = Router();
-
-// const cacheTenSeconds = cacheCurried(sec('10 sec'));
 
 sellerRouter.get('/profile', sellerController.getCurrentSellerProfile);
 sellerRouter.delete('/profile', sellerController.deleteCurrentSellerProfile);

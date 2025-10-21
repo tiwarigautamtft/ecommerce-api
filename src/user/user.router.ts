@@ -1,30 +1,28 @@
 import { Router } from 'express';
 
-import { cacheCurried } from '@/lib/middlewares/cache';
-import { sec } from '@/lib/utils';
+import { buyerController } from '@/buyer';
+import { sellerController } from '@/seller';
 
 import { userController } from '.';
 
 export const userRouter: Router = Router();
 
-// const cacheTenSeconds = cacheCurried(sec('10 sec'));
-
 userRouter.get('/me/profile', userController.getCurrentUser);
 userRouter.delete('/me/profile', userController.deleteCurrentUser);
 
-userRouter.get('/me/profile/seller', userController.getCurrentSellerProfile);
+userRouter.get('/me/profile/seller', sellerController.getCurrentSellerProfile);
 userRouter.post(
 	'/me/profile/seller',
-	userController.createCurrentSellerProfile,
+	sellerController.createCurrentSellerProfile,
 );
 userRouter.delete(
 	'/me/profile/seller',
-	userController.deleteCurrentSellerProfile,
+	sellerController.deleteCurrentSellerProfile,
 );
 
-userRouter.get('/me/profile/buyer', userController.getCurrentBuyerProfile);
-userRouter.post('/me/profile/buyer', userController.createCurrentBuyerProfile);
+userRouter.get('/me/profile/buyer', buyerController.getCurrentBuyerProfile);
+userRouter.post('/me/profile/buyer', buyerController.createCurrentBuyerProfile);
 userRouter.delete(
 	'/me/profile/buyer',
-	userController.deleteCurrentBuyerProfile,
+	buyerController.deleteCurrentBuyerProfile,
 );
