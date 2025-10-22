@@ -1,15 +1,18 @@
 import assert from 'assert';
 import { RequestHandler } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import {
-	InferAttributes,
-	Op,
-	SequelizeScopeError,
-	WhereOptions,
-} from 'sequelize';
+import { InferAttributes, Op, WhereOptions } from 'sequelize';
 import z from 'zod';
 
 import { sequelize } from '@/lib/config';
+import {
+	BadRequest,
+	Forbidden,
+	InternalServerError,
+	NotFound,
+	SequelizeUniqueConstraintError,
+	UnprocessableEntity,
+} from '@/lib/exceptions';
 import { Product } from '@/product';
 import { Role, RoleName, UserRole } from '@/role';
 
@@ -24,10 +27,7 @@ export const sellerController: SellerController = {
 		});
 
 		if (!profile) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Seller profile not found.' });
-			return;
+			throw new NotFound('Seller profile not found.');
 		}
 
 		res.status(StatusCodes.OK).json(profile);
@@ -37,18 +37,12 @@ export const sellerController: SellerController = {
 		assert(req.user, 'User must be authenticated');
 
 		if (!req.body) {
-			res
-				.status(StatusCodes.FORBIDDEN)
-				.json({ message: 'Request body is required.' });
-			return;
+			throw new Forbidden('Request body is required.');
 		}
 
 		const { storeName } = req.body;
 		if (!storeName) {
-			res
-				.status(StatusCodes.BAD_REQUEST)
-				.json({ message: 'storeName is required.' });
-			return;
+			throw new BadRequest('storeName is required.');
 		}
 
 		const user = req.user;
@@ -80,16 +74,12 @@ export const sellerController: SellerController = {
 			});
 		} catch (error) {
 			if ((error as any).name === 'SequelizeUniqueConstraintError') {
-				console.log(error);
-				res
-					.status(StatusCodes.BAD_REQUEST)
-					.json({ message: 'Seller profile already exists.' });
-			} else {
-				res
-					.status(StatusCodes.INTERNAL_SERVER_ERROR)
-					.json({ message: 'Could not create seller profile.' });
+				throw new SequelizeUniqueConstraintError(
+					'Seller profile already exists.',
+				);
 			}
-			return;
+
+			throw new InternalServerError('Could not create seller profile.');
 		}
 
 		// emitter.emit(UserEvent.SELLER_PROFILE_CREATED, {
@@ -112,10 +102,7 @@ export const sellerController: SellerController = {
 			transaction,
 		});
 		if (result === 0) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Seller profile not found.' });
-			return;
+			throw new NotFound('Seller profile not found.');
 		}
 
 		const role = await Role.findOne({
@@ -124,10 +111,7 @@ export const sellerController: SellerController = {
 
 		if (!role) {
 			await transaction.rollback();
-			res
-				.status(StatusCodes.INTERNAL_SERVER_ERROR)
-				.json({ message: 'Could not find seller role.' });
-			return;
+			throw new InternalServerError('Could not find seller role.');
 		}
 
 		result = await UserRole.destroy({
@@ -136,10 +120,7 @@ export const sellerController: SellerController = {
 		});
 		if (result === 0) {
 			await transaction.rollback();
-			res
-				.status(StatusCodes.INTERNAL_SERVER_ERROR)
-				.json({ message: 'Could not delete seller role.' });
-			return;
+			throw new InternalServerError('Could not delete seller role.');
 		}
 		await transaction.commit();
 
@@ -157,22 +138,17 @@ export const sellerController: SellerController = {
 		const validationResult = await CreateProductDto.safeParseAsync(req.body);
 
 		if (validationResult.error) {
-			console.error('Input validation failed:', validationResult.error);
-			res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
-				message: 'Invalid input data.',
-				error: z.treeifyError(validationResult.error),
-			});
-			return;
+			throw new UnprocessableEntity(
+				'Invalid input data.',
+				z.treeifyError(validationResult.error),
+			);
 		}
 
 		const data = validationResult.data;
 		const user = req.user;
 		const seller = await Seller.findOne({ where: { userId: user.id } });
 		if (!seller) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Seller profile not found.' });
-			return;
+			throw new NotFound('Seller profile not found.');
 		}
 		const sellerId = seller.id;
 
@@ -187,10 +163,7 @@ export const sellerController: SellerController = {
 		const seller = await Seller.findOne({ where: { userId: user.id } });
 
 		if (!seller) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Seller profile not found.' });
-			return;
+			throw new NotFound('Seller profile not found.');
 		}
 
 		const sellerId = seller.id;
@@ -204,8 +177,7 @@ export const sellerController: SellerController = {
 		const product = await Product.findByPk(productId);
 
 		if (!product) {
-			res.status(StatusCodes.NOT_FOUND).json({ message: 'Product not found' });
-			return;
+			throw new NotFound('Product not found');
 		}
 
 		res.status(StatusCodes.OK).json(product);
@@ -219,11 +191,10 @@ export const sellerController: SellerController = {
 
 		if (validationResult.error) {
 			console.error('Input validation failed:', validationResult.error);
-			res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
-				message: 'Invalid input data.',
-				error: z.treeifyError(validationResult.error),
-			});
-			return;
+			throw new UnprocessableEntity(
+				'Invalid input data.',
+				z.treeifyError(validationResult.error),
+			);
 		}
 
 		const data = validationResult.data;
@@ -231,10 +202,7 @@ export const sellerController: SellerController = {
 		const seller = await Seller.findOne({ where: { userId: user.id } });
 
 		if (!seller) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Seller profile not found.' });
-			return;
+			throw new NotFound('Seller profile not found.');
 		}
 
 		const [affectedRows, updatedProducts] = await Product.update(data, {
@@ -243,10 +211,7 @@ export const sellerController: SellerController = {
 		});
 
 		if (affectedRows === 0) {
-			res
-				.status(StatusCodes.INTERNAL_SERVER_ERROR)
-				.json({ message: 'Could not update product' });
-			return;
+			throw new InternalServerError('Could not update product');
 		}
 
 		res.status(StatusCodes.OK).json(updatedProducts[0]);
@@ -259,20 +224,13 @@ export const sellerController: SellerController = {
 		const seller = await Seller.findOne({ where: { userId: user.id } });
 
 		if (!seller) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Seller profile not found.' });
-			return;
+			throw new NotFound('Seller profile not found.');
 		}
 
 		try {
 			await Product.destroy({ where: { sellerId: seller.id } });
 		} catch (error) {
-			console.error(error);
-			res
-				.status(StatusCodes.INTERNAL_SERVER_ERROR)
-				.json({ message: 'Could not delete products' });
-			return;
+			throw new InternalServerError('Could not delete products');
 		}
 
 		res.status(StatusCodes.OK).json({ message: 'All products deleted' });
@@ -285,24 +243,14 @@ export const sellerController: SellerController = {
 		const seller = await Seller.findOne({ where: { userId: user.id } });
 
 		if (!seller) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Seller profile not found.' });
-			return;
+			throw new NotFound('Seller profile not found.');
 		}
 
 		const productId = req.params.productId;
 
-		const result = await Product.destroy({
+		await Product.destroy({
 			where: { id: productId, sellerId: seller.id },
 		});
-
-		if (result === 0) {
-			res
-				.status(StatusCodes.INTERNAL_SERVER_ERROR)
-				.json({ message: 'Could not delete product' });
-			return;
-		}
 
 		res.status(StatusCodes.OK).json({ message: 'Product deleted' });
 	},
@@ -312,20 +260,15 @@ export const sellerController: SellerController = {
 
 		const seller = await Seller.findOne({ where: { userId: req.user?.id } });
 		if (!seller) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Seller profile not found.' });
-			return;
+			throw new NotFound('Seller profile not found.');
 		}
 
 		const validationResult = await SearchProductDto.safeParseAsync(req.query);
 		if (validationResult.error) {
-			console.error('Input validation failed:', validationResult.error);
-			res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
-				message: 'Invalid query parameters.',
-				error: z.treeifyError(validationResult.error),
-			});
-			return;
+			throw new UnprocessableEntity(
+				'Invalid query parameters.',
+				z.treeifyError(validationResult.error),
+			);
 		}
 
 		const data = validationResult.data;

@@ -6,6 +6,10 @@ import z from 'zod';
 
 import { CartItem } from '@/cart';
 import { sequelize } from '@/lib/config';
+import { InternalServerError, NotFound } from '@/lib/exceptions';
+import { UnprocessableEntity } from '@/lib/exceptions';
+import { Forbidden } from '@/lib/exceptions/http/forbidden';
+import { SequelizeUniqueConstraintError } from '@/lib/exceptions/sequelize';
 import { Product } from '@/product';
 import { Role, RoleName, UserRole } from '@/role';
 
@@ -26,10 +30,7 @@ export const buyerController: BuyerController = {
 		});
 
 		if (!profile) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Buyer profile not found.' });
-			return;
+			throw new NotFound('Buyer profile not found.');
 		}
 
 		res.status(StatusCodes.OK).json(profile);
@@ -43,12 +44,10 @@ export const buyerController: BuyerController = {
 		);
 
 		if (validationResult.error) {
-			console.error('Input validation failed:', validationResult.error);
-			res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
-				message: 'Invalid input data.',
-				error: z.treeifyError(validationResult.error),
-			});
-			return;
+			throw new UnprocessableEntity(
+				'Invalid input data.',
+				z.treeifyError(validationResult.error),
+			);
 		}
 
 		const data = validationResult.data;
@@ -82,15 +81,12 @@ export const buyerController: BuyerController = {
 			});
 		} catch (error) {
 			if ((error as any).name === 'SequelizeUniqueConstraintError') {
-				res
-					.status(StatusCodes.BAD_REQUEST)
-					.json({ message: 'Buyer profile already exists.' });
-			} else {
-				res
-					.status(StatusCodes.INTERNAL_SERVER_ERROR)
-					.json({ message: 'Could not create buyer profile.' });
+				throw new SequelizeUniqueConstraintError(
+					'Buyer profile already exists.',
+				);
 			}
-			return;
+
+			throw new InternalServerError('Could not create buyer profile.', error);
 		}
 
 		// emitter.emit(UserEvent.BUYER_PROFILE_CREATED, {
@@ -113,10 +109,7 @@ export const buyerController: BuyerController = {
 			transaction,
 		});
 		if (result === 0) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Buyer profile not found.' });
-			return;
+			throw new NotFound('Buyer profile not found.');
 		}
 
 		const role = await Role.findOne({
@@ -125,10 +118,7 @@ export const buyerController: BuyerController = {
 
 		if (!role) {
 			await transaction.rollback();
-			res
-				.status(StatusCodes.INTERNAL_SERVER_ERROR)
-				.json({ message: 'Could not find buyer role.' });
-			return;
+			throw new InternalServerError('Could not find buyer role.');
 		}
 
 		result = await UserRole.destroy({
@@ -137,10 +127,7 @@ export const buyerController: BuyerController = {
 		});
 		if (result === 0) {
 			await transaction.rollback();
-			res
-				.status(StatusCodes.INTERNAL_SERVER_ERROR)
-				.json({ message: 'Could not delete buyer role.' });
-			return;
+			throw new InternalServerError('Could not delete buyer role.');
 		}
 		await transaction.commit();
 
@@ -157,8 +144,7 @@ export const buyerController: BuyerController = {
 		const product = await Product.findByPk(productId);
 
 		if (!product) {
-			res.status(StatusCodes.NOT_FOUND).json({ message: 'Product not found' });
-			return;
+			throw new NotFound('Product not found');
 		}
 
 		res.status(StatusCodes.OK).json(product);
@@ -169,20 +155,15 @@ export const buyerController: BuyerController = {
 
 		const buyer = await Buyer.findOne({ where: { userId: req.user?.id } });
 		if (!buyer) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Buyer profile not found.' });
-			return;
+			throw new NotFound('Buyer profile not found.');
 		}
 
 		const validationResult = await SearchProductDto.safeParseAsync(req.query);
 		if (validationResult.error) {
-			console.error('Input validation failed:', validationResult.error);
-			res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
-				message: 'Invalid query parameters.',
-				error: z.treeifyError(validationResult.error),
-			});
-			return;
+			throw new UnprocessableEntity(
+				'Invalid query parameters.',
+				z.treeifyError(validationResult.error),
+			);
 		}
 
 		const data = validationResult.data;
@@ -237,11 +218,9 @@ export const buyerController: BuyerController = {
 				},
 			],
 		});
+
 		if (!buyer) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Buyer profile not found.' });
-			return;
+			throw new NotFound('Buyer profile not found.');
 		}
 
 		const cart = buyer.toJSON().cartItems;
@@ -255,28 +234,22 @@ export const buyerController: BuyerController = {
 		const user = req.user;
 		const buyer = await Buyer.findOne({ where: { userId: user.id } });
 		if (!buyer) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Buyer profile not found.' });
-			return;
+			throw new NotFound('Buyer profile not found.');
 		}
 
 		const validationResult = await AddToCartDto.safeParseAsync(req.body);
 		if (validationResult.error) {
-			console.error('Input validation failed:', validationResult.error);
-			res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
-				message: 'Invalid query parameters.',
-				error: z.treeifyError(validationResult.error),
-			});
-			return;
+			throw new UnprocessableEntity(
+				'Invalid query parameters.',
+				z.treeifyError(validationResult.error),
+			);
 		}
 
 		const { productId, quantity } = validationResult.data;
 
 		const product = await Product.findByPk(productId);
 		if (!product) {
-			res.status(StatusCodes.NOT_FOUND).json({ message: 'Product not found.' });
-			return;
+			throw new NotFound('Product not found.');
 		}
 
 		let result;
@@ -288,15 +261,9 @@ export const buyerController: BuyerController = {
 			});
 		} catch (error) {
 			if ((error as any).name === 'SequelizeUniqueConstraintError') {
-				res
-					.status(StatusCodes.CONFLICT)
-					.json({ message: 'Product already in cart.' });
-				return;
+				throw new SequelizeUniqueConstraintError('Product already in cart.');
 			}
-			res
-				.status(StatusCodes.INTERNAL_SERVER_ERROR)
-				.json({ message: 'Could not add to cart.', error });
-			return;
+			throw new InternalServerError('Could not add to cart.');
 		}
 
 		res.status(StatusCodes.CREATED).json(result);
@@ -308,20 +275,15 @@ export const buyerController: BuyerController = {
 		const user = req.user;
 		const buyer = await Buyer.findOne({ where: { userId: user.id } });
 		if (!buyer) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Buyer profile not found.' });
-			return;
+			throw new NotFound('Buyer profile not found.');
 		}
 
 		const validationResult = await UpdateCartDto.safeParseAsync(req.body);
 		if (validationResult.error) {
-			console.error('Input validation failed:', validationResult.error);
-			res.status(StatusCodes.UNPROCESSABLE_ENTITY).json({
-				message: 'Invalid query parameters.',
-				error: z.treeifyError(validationResult.error),
-			});
-			return;
+			throw new UnprocessableEntity(
+				'Invalid query parameters.',
+				z.treeifyError(validationResult.error),
+			);
 		}
 
 		const { quantity } = validationResult.data;
@@ -329,17 +291,11 @@ export const buyerController: BuyerController = {
 
 		const cartItem = await CartItem.findByPk(itemId);
 		if (!cartItem) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Cart Item not found.' });
-			return;
+			throw new NotFound('Cart Item not found.');
 		}
 
 		if (cartItem.buyerId !== buyer.id) {
-			res
-				.status(StatusCodes.FORBIDDEN)
-				.json({ message: 'Forbidden. This item is not in your cart.' });
-			return;
+			throw new Forbidden('Forbidden. This item is not in your cart.');
 		}
 
 		cartItem.quantity = quantity;
@@ -354,10 +310,7 @@ export const buyerController: BuyerController = {
 		const user = req.user;
 		const buyer = await Buyer.findOne({ where: { userId: user.id } });
 		if (!buyer) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Buyer profile not found.' });
-			return;
+			throw new NotFound('Buyer profile not found.');
 		}
 
 		const { itemId } = req.params;
@@ -372,10 +325,7 @@ export const buyerController: BuyerController = {
 		const user = req.user;
 		const buyer = await Buyer.findOne({ where: { userId: user.id } });
 		if (!buyer) {
-			res
-				.status(StatusCodes.NOT_FOUND)
-				.json({ message: 'Buyer profile not found.' });
-			return;
+			throw new NotFound('Buyer profile not found.');
 		}
 
 		await CartItem.destroy({ where: { buyerId: buyer.id } });
