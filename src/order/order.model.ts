@@ -17,7 +17,7 @@ export class Order extends Model<
 	InferCreationAttributes<Order>
 > {
 	declare id: CreationOptional<string>;
-	declare buyerId: ForeignKey<string>;
+	declare userId: ForeignKey<string>;
 	declare status: CreationOptional<OrderStatus>;
 	declare cancelledBy: CreationOptional<CancellationBy>;
 	declare totalAmount: number;
@@ -25,13 +25,12 @@ export class Order extends Model<
 	declare updatedAt: CreationOptional<Date>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		Order.belongsTo(models.Buyer, {
-			foreignKey: 'buyerId',
+		Order.belongsTo(models.User, {
+			foreignKey: 'userId',
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',
 		});
 		Order.hasMany(models.OrderItem, { foreignKey: 'orderId' });
-		Order.hasMany(models.SalesOrder, { foreignKey: 'orderId' });
 		Order.hasOne(models.Invoice, { foreignKey: 'orderId' });
 	}
 }
@@ -43,7 +42,11 @@ Order.init(
 			primaryKey: true,
 			defaultValue: sequelize.literal('uuidv7()'),
 		},
-		buyerId: { type: DataTypes.UUID, allowNull: false },
+		userId: {
+			type: DataTypes.UUID,
+			allowNull: false,
+			references: { model: 'users', key: 'id' },
+		},
 		status: {
 			type: DataTypes.ENUM(...Object.values(OrderStatus)),
 			allowNull: false,

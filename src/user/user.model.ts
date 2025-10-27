@@ -1,7 +1,6 @@
 import {
 	CreationOptional,
 	DataTypes,
-	ForeignKey,
 	InferAttributes,
 	InferCreationAttributes,
 	Model,
@@ -25,7 +24,6 @@ export class User extends Model<
 
 	static associate(models: Record<string, ModelStatic<any>>) {
 		User.hasOne(models.Seller, { foreignKey: 'userId' });
-		User.hasOne(models.Buyer, { foreignKey: 'userId' });
 		User.hasMany(models.OAuthAccount, { foreignKey: 'userId' });
 		User.belongsToMany(models.Role, { through: models.UserRole, as: 'roles' });
 	}

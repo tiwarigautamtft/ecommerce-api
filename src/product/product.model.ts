@@ -37,7 +37,7 @@ export class Product extends Model<
 			through: models.ProductTag,
 			as: 'tags',
 		});
-		Product.belongsToMany(models.Buyer, {
+		Product.belongsToMany(models.User, {
 			through: models.CartItem,
 			as: 'cartItems',
 			onDelete: 'SET NULL',

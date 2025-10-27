@@ -15,22 +15,22 @@ export class CartItem extends Model<
 	InferCreationAttributes<CartItem>
 > {
 	declare id: CreationOptional<string>;
-	declare buyerId: ForeignKey<string>;
+	declare userId: ForeignKey<string>;
 	declare productId: ForeignKey<string>;
 	declare quantity: number;
 
-	// static associate(models: Record<string, ModelStatic<any>>) {
-	// 	CartItem.belongsTo(models.Buyer, {
-	// 		foreignKey: 'buyerId',
-	// 		onDelete: 'CASCADE',
-	// 		onUpdate: 'CASCADE',
-	// 	});
-	// 	CartItem.belongsTo(models.Product, {
-	// 		foreignKey: 'productId',
-	// 		onDelete: 'SET NULL',
-	// 		onUpdate: 'CASCADE',
-	// 	});
-	// }
+	static associate(models: Record<string, ModelStatic<any>>) {
+		CartItem.belongsTo(models.User, {
+			foreignKey: 'userId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
+		CartItem.belongsTo(models.Product, {
+			foreignKey: 'productId',
+			onDelete: 'SET NULL',
+			onUpdate: 'CASCADE',
+		});
+	}
 }
 
 CartItem.init(
@@ -40,10 +40,10 @@ CartItem.init(
 			primaryKey: true,
 			defaultValue: sequelize.literal('uuidv7()'),
 		},
-		buyerId: {
+		userId: {
 			type: DataTypes.UUID,
 			allowNull: false,
-			references: { model: 'buyers', key: 'id' },
+			references: { model: 'users', key: 'id' },
 		},
 		productId: {
 			type: DataTypes.UUID,
@@ -57,6 +57,6 @@ CartItem.init(
 		tableName: 'cart_items',
 		timestamps: true,
 		underscored: true,
-		indexes: [{ unique: true, fields: ['buyer_id', 'product_id'] }],
+		indexes: [{ unique: true, fields: ['user_id', 'product_id'] }],
 	},
 );

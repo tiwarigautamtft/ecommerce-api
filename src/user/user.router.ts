@@ -1,6 +1,5 @@
 import { Router } from 'express';
 
-import { buyerController } from '@/buyer';
 import { sellerController } from '@/seller';
 
 import { userController } from '.';
@@ -20,9 +19,3 @@ userRouter.delete(
 	sellerController.deleteCurrentSellerProfile,
 );
 
-userRouter.get('/me/profile/buyer', buyerController.getCurrentBuyerProfile);
-userRouter.post('/me/profile/buyer', buyerController.createCurrentBuyerProfile);
-userRouter.delete(
-	'/me/profile/buyer',
-	buyerController.deleteCurrentBuyerProfile,
-);

@@ -1,14 +1,14 @@
 import { Router } from 'express';
 
 import { authController, authRouter } from '@/auth';
-import { buyerRouter } from '@/buyer';
-import { isAuthenticatedGuard, isBuyerGuard } from '@/lib/guards';
+import { isAuthenticatedGuard } from '@/lib/guards';
 import { isSellerGuard } from '@/lib/guards';
 import {
 	apiRateLimit,
 	authRateLimit,
 	globalRateLimit,
 } from '@/lib/middlewares/rate-limiter';
+import { productRouter } from '@/product';
 import { sellerRouter } from '@/seller';
 import { userRouter } from '@/user';
 
@@ -25,12 +25,6 @@ router.use(
 	apiRateLimit,
 	sellerRouter,
 );
-router.use(
-	'/api/buyer',
-	isAuthenticatedGuard,
-	isBuyerGuard,
-	apiRateLimit,
-	buyerRouter,
-);
+router.use('/api/products', apiRateLimit, productRouter);
 
 export default router;

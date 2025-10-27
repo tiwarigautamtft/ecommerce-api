@@ -27,7 +27,6 @@ export class Seller extends Model<
 			onUpdate: 'CASCADE',
 		});
 		Seller.hasMany(models.Product, { foreignKey: 'sellerId' });
-		Seller.hasMany(models.SalesOrder, { foreignKey: 'sellerId' });
 		Seller.hasMany(models.OrderItem, { foreignKey: 'sellerId' });
 	}
 }
