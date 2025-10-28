@@ -9,8 +9,12 @@ export const globalErrorHandler: ErrorRequestHandler = (
 ) => {
 	console.error(error.stack);
 
-	res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-		message: error.message || 'Internal Server Error',
-		error: error?.error,
-	});
+	res
+		.status(
+			error.status || error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+		)
+		.json({
+			message: error.message || 'Internal Server Error',
+			error: error?.error,
+		});
 };
