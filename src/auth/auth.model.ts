@@ -19,6 +19,8 @@ export class OAuthAccount extends Model<
 	declare userId: ForeignKey<string>;
 	declare provider: Provider;
 	declare providerSub: string;
+	declare createdAt: CreationOptional<Date>;
+	declare updatedAt: CreationOptional<Date>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
 		OAuthAccount.belongsTo(models.User, {
@@ -46,6 +48,8 @@ OAuthAccount.init(
 			allowNull: false,
 		},
 		providerSub: { type: DataTypes.STRING, allowNull: false },
+		createdAt: DataTypes.DATE,
+		updatedAt: DataTypes.DATE,
 	},
 	{
 		sequelize,
@@ -55,6 +59,7 @@ OAuthAccount.init(
 		indexes: [
 			{ unique: true, fields: ['user_id', 'provider'] },
 			{ unique: true, fields: ['provider', 'provider_sub'] },
+			{ fields: ['user_id'] },
 		],
 	},
 );

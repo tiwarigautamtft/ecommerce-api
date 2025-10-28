@@ -43,7 +43,7 @@ Seller.init(
 			allowNull: false,
 			references: { model: 'users', key: 'id' },
 		},
-		storeName: { type: DataTypes.STRING, allowNull: false },
+		storeName: { type: DataTypes.STRING(50), allowNull: false },
 		createdAt: DataTypes.DATE,
 		updatedAt: DataTypes.DATE,
 	},
@@ -52,7 +52,10 @@ Seller.init(
 		tableName: 'sellers',
 		timestamps: true,
 		underscored: true,
-		indexes: [{ unique: true, fields: ['user_id'] }],
+		indexes: [
+			{ unique: true, fields: ['user_id'] },
+			{ unique: true, fields: ['store_name'] },
+		],
 		scopes: {
 			withoutUserId: {
 				attributes: { exclude: ['userId'] },

@@ -1,12 +1,3 @@
-export enum OrderStatus {
-	PENDING = 'pending',
-	PAID = 'paid',
-	PAYMENT_FAILED = 'payment_failed',
-	CANCELLED = 'cancelled',
-	REFUND_PENDING = 'refund_pending',
-	REFUNDED = 'refunded',
-}
-
 export enum OrderItemStatus {
 	PENDING = 'pending',
 	SHIPPED = 'shipped',
@@ -16,7 +7,8 @@ export enum OrderItemStatus {
 }
 
 export enum CancellationBy {
+	NONE = 'none',
 	BUYER = 'buyer',
 	SELLER = 'seller',
-	NONE = 'none',
+	SYSTEM = 'system',
 }

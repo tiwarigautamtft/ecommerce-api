@@ -19,8 +19,9 @@ export class OrderItem extends Model<
 	declare orderId: ForeignKey<string>;
 	declare productId: ForeignKey<string>;
 	declare sellerId: ForeignKey<string>;
+	declare productName: string;
+	declare unitPrice: number;
 	declare quantity: number;
-	declare price: number;
 	declare status: CreationOptional<OrderItemStatus>;
 	declare cancelledBy: CreationOptional<CancellationBy>;
 	declare createdAt: CreationOptional<Date>;
@@ -67,8 +68,16 @@ OrderItem.init(
 			allowNull: false,
 			references: { model: 'sellers', key: 'id' },
 		},
-		quantity: { type: DataTypes.INTEGER, allowNull: false },
-		price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+		productName: {
+			type: DataTypes.STRING,
+			allowNull: false,
+		},
+		unitPrice: { type: DataTypes.INTEGER, allowNull: false },
+		quantity: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+			validate: { min: 1 },
+		},
 		status: {
 			type: DataTypes.ENUM(...Object.values(OrderItemStatus)),
 			allowNull: false,
@@ -87,6 +96,23 @@ OrderItem.init(
 		tableName: 'order_items',
 		timestamps: true,
 		underscored: true,
-		indexes: [{ unique: true, fields: ['order_id', 'product_id'] }],
+		indexes: [
+			{ unique: true, fields: ['order_id', 'product_id'] },
+			{
+				fields: ['order_id'],
+			},
+			{
+				fields: ['seller_id'],
+			},
+			{
+				fields: ['order_id', 'seller_id'],
+			},
+			{
+				fields: ['seller_id', 'product_id'],
+			},
+			{
+				fields: ['seller_id', 'status'],
+			},
+		],
 	},
 );

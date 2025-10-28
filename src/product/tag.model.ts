@@ -15,10 +15,14 @@ export class Tag extends Model<
 > {
 	declare id: CreationOptional<string>;
 	declare name: string;
+	declare createdAt: CreationOptional<Date>;
+	declare updatedAt: CreationOptional<Date>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
-		Tag.hasMany(models.ProductTag, { foreignKey: 'tagId' });
-		Tag.belongsToMany(models.Product, { through: 'ProductTag' });
+		Tag.belongsToMany(models.Product, {
+			through: models.ProductTag,
+			as: 'productTags',
+		});
 	}
 }
 
@@ -30,6 +34,8 @@ Tag.init(
 			defaultValue: sequelize.literal('uuidv7()'),
 		},
 		name: { type: DataTypes.STRING, allowNull: false },
+		createdAt: DataTypes.DATE,
+		updatedAt: DataTypes.DATE,
 	},
 	{
 		sequelize,

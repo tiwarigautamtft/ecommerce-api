@@ -20,6 +20,7 @@ export class Product extends Model<
 	declare description: CreationOptional<string | null>;
 	declare price: number;
 	declare quantity: number;
+	declare isPublished: CreationOptional<boolean>;
 	declare createdAt: CreationOptional<Date>;
 	declare updatedAt: CreationOptional<Date>;
 
@@ -29,9 +30,9 @@ export class Product extends Model<
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',
 		});
-		Product.hasMany(models.ProductTag, { foreignKey: 'productId' });
+
+		Product.hasMany(models.CartItem, { foreignKey: 'productId' });
 		Product.hasMany(models.OrderItem, { foreignKey: 'productId' });
-		// Product.hasMany(models.CartItem, { foreignKey: 'productId' });
 
 		Product.belongsToMany(models.Tag, {
 			through: models.ProductTag,
@@ -53,17 +54,20 @@ Product.init(
 			primaryKey: true,
 			defaultValue: sequelize.literal('uuidv7()'),
 		},
+		sellerId: {
+			type: DataTypes.UUID,
+			allowNull: false,
+			references: { model: 'sellers', key: 'id' },
+		},
 		name: { type: DataTypes.STRING, allowNull: false },
 		description: { type: DataTypes.TEXT, allowNull: true },
-		price: {
-			type: DataTypes.DECIMAL(10, 2),
-			allowNull: false,
-			get() {
-				const rawValue = this.getDataValue('price');
-				return parseFloat(`${rawValue}`);
-			},
-		},
+		price: { type: DataTypes.INTEGER, allowNull: false },
 		quantity: { type: DataTypes.INTEGER, allowNull: false },
+		isPublished: {
+			type: DataTypes.BOOLEAN,
+			allowNull: false,
+			defaultValue: true,
+		},
 		createdAt: DataTypes.DATE,
 		updatedAt: DataTypes.DATE,
 	},
@@ -73,11 +77,12 @@ Product.init(
 		timestamps: true,
 		underscored: true,
 		indexes: [
-			{ unique: true, fields: ['id', 'seller_id'] },
+			{ unique: true, fields: ['name', 'seller_id'] },
 			{ fields: ['seller_id'] },
 			{ fields: ['name'] },
 			{ fields: ['price'] },
-			{ unique: true, fields: ['name', 'seller_id'] },
+			{ fields: ['is_published'] },
+			{ fields: ['seller_id', 'is_published'] },
 		],
 	},
 );

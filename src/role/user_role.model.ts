@@ -17,6 +17,8 @@ export class UserRole extends Model<
 	declare id: CreationOptional<string>;
 	declare userId: ForeignKey<string>;
 	declare roleId: ForeignKey<string>;
+	declare createdAt: CreationOptional<Date>;
+	declare updatedAt: CreationOptional<Date>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
 		UserRole.belongsTo(models.User, {
@@ -49,6 +51,8 @@ UserRole.init(
 			allowNull: false,
 			references: { model: 'roles', key: 'id' },
 		},
+		createdAt: DataTypes.DATE,
+		updatedAt: DataTypes.DATE,
 	},
 	{
 		sequelize,

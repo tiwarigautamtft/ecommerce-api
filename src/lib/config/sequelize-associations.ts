@@ -1,18 +1,20 @@
-import { OAuthAccount } from '@/auth/auth.model';
-import { CartItem } from '@/cart/cart_item.model';
-import { Invoice } from '@/invoice/invoice.model';
-import { Order } from '@/order/order.model';
-import { OrderItem } from '@/order/order_item.model';
-import { Product } from '@/product/product.model';
-import { ProductTag } from '@/product/product_tag.model';
-import { Tag } from '@/product/tag.model';
-import { Role } from '@/role/role.model';
-import { UserRole } from '@/role/user_role.model';
-import { Seller } from '@/seller/seller.model';
-import { User } from '@/user/user.model';
+import { Address } from '@/address';
+import { OAuthAccount } from '@/auth';
+import { CartItem } from '@/cart';
+import { Order } from '@/order';
+import { OrderItem } from '@/order';
+import { PaymentAttempt } from '@/payment';
+import { Product } from '@/product';
+import { ProductTag } from '@/product';
+import { Tag } from '@/product';
+import { Role } from '@/role';
+import { UserRole } from '@/role';
+import { Seller } from '@/seller';
+import { User } from '@/user';
 
 export function defineAssociations() {
 	const models = {
+		Address,
 		User,
 		OAuthAccount,
 		Role,
@@ -24,7 +26,7 @@ export function defineAssociations() {
 		CartItem,
 		Order,
 		OrderItem,
-		Invoice,
+		PaymentAttempt,
 	};
 
 	Object.values(models).forEach((model) => {

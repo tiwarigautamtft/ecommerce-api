@@ -17,7 +17,9 @@ export class CartItem extends Model<
 	declare id: CreationOptional<string>;
 	declare userId: ForeignKey<string>;
 	declare productId: ForeignKey<string>;
-	declare quantity: number;
+	declare quantity: CreationOptional<number>;
+	declare createdAt: CreationOptional<Date>;
+	declare updatedAt: CreationOptional<Date>;
 
 	static associate(models: Record<string, ModelStatic<any>>) {
 		CartItem.belongsTo(models.User, {
@@ -50,13 +52,23 @@ CartItem.init(
 			allowNull: false,
 			references: { model: 'products', key: 'id' },
 		},
-		quantity: { type: DataTypes.INTEGER, allowNull: false },
+		quantity: {
+			type: DataTypes.INTEGER,
+			allowNull: false,
+			validate: { min: 1 },
+			defaultValue: 1,
+		},
+		createdAt: DataTypes.DATE,
+		updatedAt: DataTypes.DATE,
 	},
 	{
 		sequelize,
 		tableName: 'cart_items',
 		timestamps: true,
 		underscored: true,
-		indexes: [{ unique: true, fields: ['user_id', 'product_id'] }],
+		indexes: [
+			{ unique: true, fields: ['user_id', 'product_id'] },
+			{ fields: ['user_id'] },
+		],
 	},
 );

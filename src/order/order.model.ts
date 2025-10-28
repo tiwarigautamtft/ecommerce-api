@@ -10,17 +10,15 @@ import {
 
 import { sequelize } from '@/lib/config';
 
-import { CancellationBy, OrderStatus } from './order.enum';
-
 export class Order extends Model<
 	InferAttributes<Order>,
 	InferCreationAttributes<Order>
 > {
 	declare id: CreationOptional<string>;
 	declare userId: ForeignKey<string>;
-	declare status: CreationOptional<OrderStatus>;
-	declare cancelledBy: CreationOptional<CancellationBy>;
-	declare totalAmount: number;
+	declare orderNumber: string;
+	declare total: number;
+	declare shippingAddressId: ForeignKey<string>;
 	declare createdAt: CreationOptional<Date>;
 	declare updatedAt: CreationOptional<Date>;
 
@@ -30,8 +28,17 @@ export class Order extends Model<
 			onDelete: 'CASCADE',
 			onUpdate: 'CASCADE',
 		});
+		Order.belongsTo(models.Address, {
+			foreignKey: 'shippingAddressId',
+			onDelete: 'SET NULL',
+			onUpdate: 'CASCADE',
+		});
 		Order.hasMany(models.OrderItem, { foreignKey: 'orderId' });
-		Order.hasOne(models.Invoice, { foreignKey: 'orderId' });
+		Order.hasMany(models.PaymentAttempt, {
+			foreignKey: 'orderId',
+			onDelete: 'CASCADE',
+			onUpdate: 'CASCADE',
+		});
 	}
 }
 
@@ -47,17 +54,19 @@ Order.init(
 			allowNull: false,
 			references: { model: 'users', key: 'id' },
 		},
-		status: {
-			type: DataTypes.ENUM(...Object.values(OrderStatus)),
+		orderNumber: {
+			type: DataTypes.STRING(9),
 			allowNull: false,
-			defaultValue: OrderStatus.PENDING,
 		},
-		cancelledBy: {
-			type: DataTypes.ENUM(...Object.values(CancellationBy)),
+		total: {
+			type: DataTypes.INTEGER,
 			allowNull: false,
-			defaultValue: CancellationBy.NONE,
 		},
-		totalAmount: { type: DataTypes.DECIMAL(10, 2), allowNull: true },
+		shippingAddressId: {
+			type: DataTypes.UUID,
+			allowNull: false,
+			references: { model: 'addresses', key: 'id' },
+		},
 		createdAt: DataTypes.DATE,
 		updatedAt: DataTypes.DATE,
 	},
@@ -66,5 +75,10 @@ Order.init(
 		tableName: 'orders',
 		timestamps: true,
 		underscored: true,
+		indexes: [
+			{ unique: true, fields: ['order_number'] },
+			{ fields: ['user_id'] },
+			{ fields: ['total'] },
+		],
 	},
 );

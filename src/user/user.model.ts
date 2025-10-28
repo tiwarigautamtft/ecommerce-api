@@ -25,6 +25,8 @@ export class User extends Model<
 	static associate(models: Record<string, ModelStatic<any>>) {
 		User.hasOne(models.Seller, { foreignKey: 'userId' });
 		User.hasMany(models.OAuthAccount, { foreignKey: 'userId' });
+		User.hasMany(models.Address, { foreignKey: 'userId' });
+		User.hasMany(models.CartItem, { foreignKey: 'userId' });
 		User.belongsToMany(models.Role, { through: models.UserRole, as: 'roles' });
 	}
 }
@@ -36,14 +38,22 @@ User.init(
 			primaryKey: true,
 			defaultValue: sequelize.literal('uuidv7()'),
 		},
-		email: { type: DataTypes.STRING, allowNull: false },
+		email: {
+			type: DataTypes.STRING,
+			allowNull: false,
+			validate: { isEmail: true },
+		},
 		emailVerified: {
 			type: DataTypes.BOOLEAN,
 			allowNull: false,
 			defaultValue: false,
 		},
 		name: { type: DataTypes.STRING, allowNull: false },
-		avatarUrl: { type: DataTypes.STRING, allowNull: true },
+		avatarUrl: {
+			type: DataTypes.STRING,
+			allowNull: true,
+			validate: { isUrl: true },
+		},
 		createdAt: DataTypes.DATE,
 		updatedAt: DataTypes.DATE,
 	},
