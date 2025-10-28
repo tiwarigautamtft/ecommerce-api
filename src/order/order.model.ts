@@ -1,3 +1,5 @@
+import { init } from '@paralleldrive/cuid2';
+
 import {
 	CreationOptional,
 	DataTypes,
@@ -10,13 +12,21 @@ import {
 
 import { sequelize } from '@/lib/config';
 
+const createCuid = init({
+	length: 9,
+});
+
+function createOrderNumber() {
+	return createCuid().toUpperCase();
+}
+
 export class Order extends Model<
 	InferAttributes<Order>,
 	InferCreationAttributes<Order>
 > {
 	declare id: CreationOptional<string>;
 	declare userId: ForeignKey<string>;
-	declare orderNumber: string;
+	declare orderNumber: CreationOptional<string>;
 	declare total: number;
 	declare shippingAddressId: ForeignKey<string>;
 	declare createdAt: CreationOptional<Date>;
@@ -57,6 +67,7 @@ Order.init(
 		orderNumber: {
 			type: DataTypes.STRING(9),
 			allowNull: false,
+			defaultValue: createOrderNumber,
 		},
 		total: {
 			type: DataTypes.INTEGER,
