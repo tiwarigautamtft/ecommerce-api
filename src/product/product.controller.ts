@@ -1,16 +1,27 @@
-import assert from 'assert';
 import { RequestHandler } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { InferAttributes, Op, WhereOptions } from 'sequelize';
+import z from 'zod';
 
-import { NotFound, UnprocessableEntity } from '@/lib/exceptions';
+import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/exceptions';
 
 import { SearchProductDto } from './dto';
 import { Product } from './product.model';
 
 export const productController: ProductControler = {
 	getProductById: async (req, res) => {
-		const productId = req.params.productId;
+		const validationResult = await z
+			.uuid()
+			.safeParseAsync(req.params.productId);
+
+		if (validationResult.error) {
+			throw new BadRequest(
+				'Invalid path parameter',
+				z.treeifyError(validationResult.error),
+			);
+		}
+		const productId = validationResult.data;
+
 		const product = await Product.findByPk(productId);
 
 		if (!product) {
@@ -21,12 +32,10 @@ export const productController: ProductControler = {
 	},
 
 	searchProducts: async (req, res) => {
-		assert(req.user, 'User must be authenticated');
-
 		const validationResult = await SearchProductDto.safeParseAsync(req.query);
 		if (validationResult.error) {
 			throw new UnprocessableEntity(
-				'Invalid query parameters.',
+				'Invalid query parameter',
 				z.treeifyError(validationResult.error),
 			);
 		}
@@ -45,8 +54,16 @@ export const productController: ProductControler = {
 			  >
 			| undefined = {
 			...(name ? { name: { [Op.iLike]: `%${name}%` } } : {}),
-			...(minPrice !== undefined ? { price: { [Op.gte]: minPrice } } : {}),
-			...(maxPrice !== undefined ? { price: { [Op.lte]: maxPrice } } : {}),
+
+			// Price range filter >= minprice and <= maxprice
+			...(minPrice !== undefined || maxPrice !== undefined
+				? {
+						price: {
+							...(minPrice !== undefined ? { [Op.gte]: minPrice } : {}),
+							...(maxPrice !== undefined ? { [Op.lte]: maxPrice } : {}),
+						},
+					}
+				: {}),
 		};
 
 		const { rows: products, count } = await Product.findAndCountAll({

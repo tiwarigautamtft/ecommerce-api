@@ -9,7 +9,7 @@ import {
 } from 'sequelize';
 
 import { sequelize } from '@/lib/config';
-import { CancellationBy, OrderItemStatus } from '@/order/order.enum';
+import { CancellationBy, OrderItemStatus } from '@/order';
 
 export class OrderItem extends Model<
 	InferAttributes<OrderItem>,

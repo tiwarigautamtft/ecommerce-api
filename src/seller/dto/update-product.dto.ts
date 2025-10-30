@@ -5,6 +5,7 @@ export const UpdateProductDto = z.object({
 	description: z.string().max(1000).optional(),
 	price: z.number().min(0).optional(),
 	quantity: z.number().int().min(0).optional(),
+	isPublished: z.boolean().optional(),
 });
 
 export type UpdateProductDtoType = z.infer<typeof UpdateProductDto>;

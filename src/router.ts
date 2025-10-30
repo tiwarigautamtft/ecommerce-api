@@ -18,13 +18,7 @@ router.use(globalRateLimit);
 router.get('/', authController.handleAuthCheck);
 router.use('/api/auth', authRateLimit, authRouter);
 router.use('/api/users', isAuthenticatedGuard, apiRateLimit, userRouter);
-router.use(
-	'/api/seller',
-	isAuthenticatedGuard,
-	isSellerGuard,
-	apiRateLimit,
-	sellerRouter,
-);
+router.use('/api/sellers', isAuthenticatedGuard, apiRateLimit, sellerRouter);
 router.use('/api/products', apiRateLimit, productRouter);
 
 export default router;

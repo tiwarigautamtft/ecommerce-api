@@ -40,6 +40,7 @@ export class Order extends Model<
 		});
 		Order.belongsTo(models.Address, {
 			foreignKey: 'shippingAddressId',
+			as: 'shippingAddress',
 			onDelete: 'SET NULL',
 			onUpdate: 'CASCADE',
 		});
