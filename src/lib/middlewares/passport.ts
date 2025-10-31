@@ -1,7 +1,7 @@
 import { RequestHandler } from 'express';
 import passport from 'passport';
 
-import { googleStrategy } from '@/lib/config';
+import { googleStrategy } from '@/auth/strategy';
 
 passport.use(googleStrategy);
 

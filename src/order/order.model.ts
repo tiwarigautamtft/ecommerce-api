@@ -1,16 +1,23 @@
 import { init } from '@paralleldrive/cuid2';
 
+import { Sequelize } from 'sequelize';
 import {
-	CreationOptional,
-	DataTypes,
+	AllowNull,
+	BelongsTo,
+	Column,
+	DataType,
+	Default,
 	ForeignKey,
-	InferAttributes,
-	InferCreationAttributes,
+	HasMany,
 	Model,
-	ModelStatic,
-} from 'sequelize';
+	PrimaryKey,
+	Table,
+} from 'sequelize-typescript';
 
-import { sequelize } from '@/lib/config';
+import { Address } from '@/address/address.model';
+import { OrderItem } from '@/order/order-item.model';
+import { PaymentAttempt } from '@/payment/payment.model';
+import { User } from '@/user/user.model';
 
 const createCuid = init({
 	length: 9,
@@ -20,77 +27,56 @@ function createOrderNumber() {
 	return createCuid().toUpperCase();
 }
 
-export class Order extends Model<
-	InferAttributes<Order>,
-	InferCreationAttributes<Order>
-> {
-	declare id: CreationOptional<string>;
-	declare userId: ForeignKey<string>;
-	declare orderNumber: CreationOptional<string>;
+@Table({
+	tableName: 'orders',
+	timestamps: true,
+	underscored: true,
+	indexes: [
+		{ unique: true, fields: ['order_number'] },
+		{ fields: ['user_id'] },
+		{ fields: ['total'] },
+	],
+})
+export class Order extends Model {
+	@PrimaryKey
+	@Default(Sequelize.literal('uuidv7()'))
+	@Column(DataType.UUID)
+	declare id: string;
+
+	@AllowNull(false)
+	@ForeignKey(() => User)
+	@Column(DataType.UUID)
+	declare userId: string;
+
+	@AllowNull(false)
+	@Default(createOrderNumber)
+	@Column(DataType.STRING(9))
+	declare orderNumber: string;
+
+	@AllowNull(false)
+	@Column(DataType.INTEGER)
 	declare total: number;
-	declare shippingAddressId: ForeignKey<string>;
-	declare createdAt: CreationOptional<Date>;
-	declare updatedAt: CreationOptional<Date>;
 
-	static associate(models: Record<string, ModelStatic<any>>) {
-		Order.belongsTo(models.User, {
-			foreignKey: 'userId',
-			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
-		});
-		Order.belongsTo(models.Address, {
-			foreignKey: 'shippingAddressId',
-			as: 'shippingAddress',
-			onDelete: 'SET NULL',
-			onUpdate: 'CASCADE',
-		});
-		Order.hasMany(models.OrderItem, { foreignKey: 'orderId' });
-		Order.hasMany(models.PaymentAttempt, {
-			foreignKey: 'orderId',
-			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
-		});
-	}
+	@AllowNull(false)
+	@ForeignKey(() => Address)
+	@Column(DataType.UUID)
+	declare shippingAddressId: string;
+
+	@Column(DataType.DATE)
+	declare createdAt: Date;
+
+	@Column(DataType.DATE)
+	declare updatedAt: Date;
+
+	@BelongsTo(() => User)
+	declare user?: User;
+
+	@BelongsTo(() => Address, { as: 'shippingAddress' })
+	declare shippingAddress?: Address;
+
+	@HasMany(() => OrderItem)
+	declare orderItems?: OrderItem[];
+
+	@HasMany(() => PaymentAttempt)
+	declare paymentAttempts?: PaymentAttempt[];
 }
-
-Order.init(
-	{
-		id: {
-			type: DataTypes.UUID,
-			primaryKey: true,
-			defaultValue: sequelize.literal('uuidv7()'),
-		},
-		userId: {
-			type: DataTypes.UUID,
-			allowNull: false,
-			references: { model: 'users', key: 'id' },
-		},
-		orderNumber: {
-			type: DataTypes.STRING(9),
-			allowNull: false,
-			defaultValue: createOrderNumber,
-		},
-		total: {
-			type: DataTypes.INTEGER,
-			allowNull: false,
-		},
-		shippingAddressId: {
-			type: DataTypes.UUID,
-			allowNull: false,
-			references: { model: 'addresses', key: 'id' },
-		},
-		createdAt: DataTypes.DATE,
-		updatedAt: DataTypes.DATE,
-	},
-	{
-		sequelize,
-		tableName: 'orders',
-		timestamps: true,
-		underscored: true,
-		indexes: [
-			{ unique: true, fields: ['order_number'] },
-			{ fields: ['user_id'] },
-			{ fields: ['total'] },
-		],
-	},
-);

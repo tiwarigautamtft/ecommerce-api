@@ -1,47 +1,40 @@
+import { Sequelize } from 'sequelize';
 import {
-	CreationOptional,
-	DataTypes,
-	InferAttributes,
-	InferCreationAttributes,
+	AllowNull,
+	BelongsToMany,
+	Column,
+	DataType,
+	Default,
 	Model,
-	ModelStatic,
-} from 'sequelize';
+	PrimaryKey,
+	Table,
+} from 'sequelize-typescript';
 
-import { sequelize } from '@/lib/config';
+import { ProductTag } from '@/product/product-tag.model';
+import { Product } from '@/product/product.model';
 
-export class Tag extends Model<
-	InferAttributes<Tag>,
-	InferCreationAttributes<Tag>
-> {
-	declare id: CreationOptional<string>;
+@Table({
+	tableName: 'tags',
+	timestamps: true,
+	underscored: true,
+	indexes: [{ unique: true, fields: ['name'] }],
+})
+export class Tag extends Model {
+	@PrimaryKey
+	@Default(Sequelize.literal('uuidv7()'))
+	@Column(DataType.UUID)
+	declare id: string;
+
+	@AllowNull(false)
+	@Column(DataType.STRING)
 	declare name: string;
-	declare createdAt: CreationOptional<Date>;
-	declare updatedAt: CreationOptional<Date>;
 
-	static associate(models: Record<string, ModelStatic<any>>) {
-		Tag.belongsToMany(models.Product, {
-			through: models.ProductTag,
-			as: 'productTags',
-		});
-	}
+	@Column(DataType.DATE)
+	declare createdAt: Date;
+
+	@Column(DataType.DATE)
+	declare updatedAt: Date;
+
+	@BelongsToMany(() => Product, () => ProductTag)
+	declare products?: Product[];
 }
-
-Tag.init(
-	{
-		id: {
-			type: DataTypes.UUID,
-			primaryKey: true,
-			defaultValue: sequelize.literal('uuidv7()'),
-		},
-		name: { type: DataTypes.STRING, allowNull: false },
-		createdAt: DataTypes.DATE,
-		updatedAt: DataTypes.DATE,
-	},
-	{
-		sequelize,
-		tableName: 'tags',
-		timestamps: true,
-		underscored: true,
-		indexes: [{ unique: true, fields: ['name'] }],
-	},
-);

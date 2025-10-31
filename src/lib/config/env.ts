@@ -7,7 +7,11 @@ export const env = {
 	NODE_ENV: getEnvVar('NODE_ENV'),
 	PORT: getEnvVar('PORT'),
 
-	POSTGRES_URI: getEnvVar('POSTGRES_URI'),
+	DB_NAME: getEnvVar('DB_NAME'),
+	DB_URL: getEnvVar('DB_URL'),
+	DB_USERNAME: getEnvVar('DB_USERNAME'),
+	DB_PASSWORD: getEnvVar('DB_PASSWORD'),
+	DB_DIALECT: getEnvVar('DB_DIALECT'),
 
 	SESSION_SECRET: getEnvVar('SESSION_SECRET'),
 	SESSION_EXPIRY: getEnvVar('SESSION_EXPIRY') as StringValue,

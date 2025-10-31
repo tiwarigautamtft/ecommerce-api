@@ -2,10 +2,12 @@ import express, { type Express } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
-import '@/lib/config/database';
+import { configDb } from '@/lib/config';
 import { cors, globalErrorHandler, passport, session } from '@/lib/middlewares';
 
 import router from './router';
+
+configDb();
 
 const app: Express = express();
 

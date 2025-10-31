@@ -1,16 +1,17 @@
 import { Router } from 'express';
 
-import { authController, authRouter } from '@/auth';
+import { authController } from '@/auth/auth.controller';
 import { isAuthenticatedGuard } from '@/lib/guards';
-import { isSellerGuard } from '@/lib/guards';
 import {
 	apiRateLimit,
 	authRateLimit,
 	globalRateLimit,
 } from '@/lib/middlewares/rate-limiter';
-import { productRouter } from '@/product';
-import { sellerRouter } from '@/seller';
-import { userRouter } from '@/user';
+
+import { authRouter } from './auth/auth.router';
+import { productRouter } from './product/product.router';
+import { sellerRouter } from './seller/seller.router';
+import { userRouter } from './user/user.router';
 
 const router: Router = Router();
 

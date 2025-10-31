@@ -19,7 +19,9 @@
 		"typeRoots": ["./src/lib/types", "./node_modules/@types"],
 		"paths": {
 			"@/*": ["src/*"]
-		}
+		},
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true
 	},
 	"include": ["./src/**/*"],
 	"exclude": ["node_modules", "test", "dist", "**/*spec.ts"]

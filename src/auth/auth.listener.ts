@@ -1,5 +1,5 @@
 import { emitter } from '@/lib/events/emitter';
-import { UserEvent } from '@/user';
+import { UserEvent } from '@/user/user.event';
 
 export function registerListeners() {
 	emitter.on(UserEvent.DELETED, function (userId) {

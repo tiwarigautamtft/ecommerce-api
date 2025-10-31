@@ -1,79 +1,52 @@
+import { Sequelize } from 'sequelize';
 import {
-	CreationOptional,
-	DataTypes,
+	AllowNull,
+	BelongsTo,
+	Column,
+	DataType,
+	Default,
 	ForeignKey,
-	InferAttributes,
-	InferCreationAttributes,
 	Model,
-	ModelStatic,
-} from 'sequelize';
+	PrimaryKey,
+	Table,
+} from 'sequelize-typescript';
 
-import { sequelize } from '@/lib/config';
+import { Order } from '@/order/order.model';
 
 import { PaymentStatus } from './payment-status.enum';
 
-export class PaymentAttempt extends Model<
-	InferAttributes<PaymentAttempt>,
-	InferCreationAttributes<PaymentAttempt>
-> {
-	declare id: CreationOptional<string>;
-	declare orderId: ForeignKey<string>;
+@Table({
+	tableName: 'payment_attempts',
+	timestamps: true,
+	underscored: true,
+	indexes: [{ fields: ['order_id'] }, { fields: ['order_id', 'status'] }],
+})
+export class PaymentAttempt extends Model {
+	@PrimaryKey
+	@Default(Sequelize.literal('uuidv7()'))
+	@Column(DataType.UUID)
+	declare id: string;
+
+	@AllowNull(false)
+	@ForeignKey(() => Order)
+	@Column(DataType.UUID)
+	declare orderId: string;
+
+	@AllowNull(false)
+	@Column(DataType.INTEGER)
 	declare amount: number;
-	declare status: CreationOptional<PaymentStatus>;
-	declare createdAt: CreationOptional<Date>;
-	declare updatedAt: CreationOptional<Date>;
 
-	static associate(models: Record<string, ModelStatic<any>>) {
-		PaymentAttempt.belongsTo(models.Order, {
-			foreignKey: 'orderId',
-			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
-		});
-	}
+	@AllowNull(false)
+	@Default(PaymentStatus.PROCESSING)
+	@Column(DataType.ENUM(...Object.values(PaymentStatus)))
+	declare status: PaymentStatus;
+
+	@Column(DataType.DATE)
+	declare createdAt: Date;
+
+	@Column(DataType.DATE)
+	declare updatedAt: Date;
+
+	@BelongsTo(() => Order)
+	declare order?: Order;
 }
-
-PaymentAttempt.init(
-	{
-		id: {
-			type: DataTypes.UUID,
-			primaryKey: true,
-			defaultValue: sequelize.literal('uuidv7()'),
-		},
-		orderId: {
-			type: DataTypes.UUID,
-			allowNull: false,
-			references: {
-				model: 'orders',
-				key: 'id',
-			},
-		},
-		amount: {
-			type: DataTypes.INTEGER,
-			allowNull: false,
-			validate: {
-				min: 0,
-			},
-		},
-		status: {
-			type: DataTypes.ENUM(...Object.values(PaymentStatus)),
-			allowNull: false,
-			defaultValue: PaymentStatus.PROCESSING,
-		},
-		createdAt: DataTypes.DATE,
-		updatedAt: DataTypes.DATE,
-	},
-	{
-		sequelize,
-		tableName: 'payment_attempts',
-		timestamps: true,
-		underscored: true,
-		indexes: [
-			{
-				fields: ['order_id'],
-			},
-			{
-				fields: ['order_id', 'status'],
-			},
-		],
-	},
-);

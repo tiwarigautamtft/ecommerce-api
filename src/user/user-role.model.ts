@@ -11,21 +11,19 @@ import {
 	Table,
 } from 'sequelize-typescript';
 
+import { Role } from '@/role/role.model';
 import { User } from '@/user/user.model';
 
-import { Provider } from './auth.enum';
-
 @Table({
-	tableName: 'oauth_accounts',
+	tableName: 'user_roles',
 	timestamps: true,
 	underscored: true,
 	indexes: [
-		{ unique: true, fields: ['user_id', 'provider'] },
-		{ unique: true, fields: ['provider', 'provider_sub'] },
+		{ unique: true, fields: ['user_id', 'role_id'] },
 		{ fields: ['user_id'] },
 	],
 })
-export class OAuthAccount extends Model {
+export class UserRole extends Model {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
@@ -37,12 +35,9 @@ export class OAuthAccount extends Model {
 	declare userId: string;
 
 	@AllowNull(false)
-	@Column(DataType.ENUM(...Object.values(Provider)))
-	declare provider: Provider;
-
-	@AllowNull(false)
-	@Column(DataType.STRING)
-	declare providerSub: string;
+	@ForeignKey(() => Role)
+	@Column(DataType.UUID)
+	declare roleId: string;
 
 	@Column(DataType.DATE)
 	declare createdAt: Date;
@@ -52,4 +47,7 @@ export class OAuthAccount extends Model {
 
 	@BelongsTo(() => User)
 	declare user?: User;
+
+	@BelongsTo(() => Role)
+	declare role?: Role;
 }

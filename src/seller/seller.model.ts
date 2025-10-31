@@ -1,65 +1,63 @@
+import { Optional, Sequelize } from 'sequelize';
 import {
-	CreationOptional,
-	DataTypes,
+	AllowNull,
+	BelongsTo,
+	Column,
+	DataType,
+	Default,
 	ForeignKey,
-	InferAttributes,
-	InferCreationAttributes,
+	HasMany,
 	Model,
-	ModelStatic,
-} from 'sequelize';
+	PrimaryKey,
+	Scopes,
+	Table,
+} from 'sequelize-typescript';
 
-import { sequelize } from '@/lib/config';
+import { OrderItem } from '@/order/order-item.model';
+import { Product } from '@/product/product.model';
+import { User } from '@/user/user.model';
 
-export class Seller extends Model<
-	InferAttributes<Seller>,
-	InferCreationAttributes<Seller>
-> {
-	declare id: CreationOptional<string>;
-	declare userId: ForeignKey<string>;
+@Scopes(() => ({
+	withoutUserId: {
+		attributes: { exclude: ['userId'] },
+	},
+}))
+@Table({
+	tableName: 'sellers',
+	timestamps: true,
+	underscored: true,
+	indexes: [
+		{ unique: true, fields: ['user_id'] },
+		{ unique: true, fields: ['store_name'] },
+	],
+})
+export class Seller extends Model {
+	@PrimaryKey
+	@Default(Sequelize.literal('uuidv7()'))
+	@Column(DataType.UUID)
+	declare id: string;
+
+	@AllowNull(false)
+	@ForeignKey(() => User)
+	@Column(DataType.UUID)
+	declare userId: string;
+
+	@AllowNull(false)
+	@Column(DataType.STRING(50))
 	declare storeName: string;
-	declare createdAt: CreationOptional<Date>;
-	declare updatedAt: CreationOptional<Date>;
 
-	static associate(models: Record<string, ModelStatic<any>>) {
-		Seller.belongsTo(models.User, {
-			foreignKey: 'userId',
-			onDelete: 'CASCADE',
-			onUpdate: 'CASCADE',
-		});
-		Seller.hasMany(models.Product, { foreignKey: 'sellerId' });
-		Seller.hasMany(models.OrderItem, { foreignKey: 'sellerId' });
-	}
+	@Column(DataType.DATE)
+	declare createdAt: Date;
+
+	@Column(DataType.DATE)
+	declare updatedAt: Date;
+
+	@BelongsTo(() => User)
+	declare user?: User;
+
+	@HasMany(() => Product)
+	declare products?: Product[];
+
+	@HasMany(() => OrderItem)
+	declare orderItems?: OrderItem[];
 }
-
-Seller.init(
-	{
-		id: {
-			type: DataTypes.UUID,
-			primaryKey: true,
-			defaultValue: sequelize.literal('uuidv7()'),
-		},
-		userId: {
-			type: DataTypes.UUID,
-			allowNull: false,
-			references: { model: 'users', key: 'id' },
-		},
-		storeName: { type: DataTypes.STRING(50), allowNull: false },
-		createdAt: DataTypes.DATE,
-		updatedAt: DataTypes.DATE,
-	},
-	{
-		sequelize,
-		tableName: 'sellers',
-		timestamps: true,
-		underscored: true,
-		indexes: [
-			{ unique: true, fields: ['user_id'] },
-			{ unique: true, fields: ['store_name'] },
-		],
-		scopes: {
-			withoutUserId: {
-				attributes: { exclude: ['userId'] },
-			},
-		},
-	},
-);

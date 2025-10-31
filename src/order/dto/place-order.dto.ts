@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { CreateAddressDto } from './create-address.dto';
+import { CreateAddressDto } from '@/address/dto';
 
 export const OrderItemDto = z.object({
 	productId: z.uuidv7(),

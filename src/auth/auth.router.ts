@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 import { isAuthenticatedGuard, isGuestGuard } from '@/lib/guards';
 
-import { authController } from '.';
+import { authController } from './auth.controller';
 
 export const authRouter: Router = Router();
 

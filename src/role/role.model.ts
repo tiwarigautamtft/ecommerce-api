@@ -1,51 +1,46 @@
+import { Sequelize } from 'sequelize';
 import {
-	CreationOptional,
-	DataTypes,
-	InferAttributes,
-	InferCreationAttributes,
+	AllowNull,
+	BelongsToMany,
+	Column,
+	DataType,
+	Default,
 	Model,
-	ModelStatic,
-} from 'sequelize';
+	PrimaryKey,
+	Table,
+} from 'sequelize-typescript';
 
-import { sequelize } from '@/lib/config';
+import { User } from '@/user/user.model';
 
+import { UserRole } from '../user/user-role.model';
 import { RoleName } from './role.enum';
 
-export class Role extends Model<
-	InferAttributes<Role>,
-	InferCreationAttributes<Role>
-> {
-	declare id: CreationOptional<string>;
+@Table({
+	tableName: 'roles',
+	timestamps: true,
+	underscored: true,
+	indexes: [{ unique: true, fields: ['name'] }],
+})
+export class Role extends Model {
+	@PrimaryKey
+	@Default(Sequelize.literal('uuidv7()'))
+	@Column(DataType.UUID)
+	declare id: string;
+
+	@AllowNull(false)
+	@Column(DataType.ENUM(...Object.values(RoleName)))
 	declare name: RoleName;
-	declare description: CreationOptional<string | null>;
-	declare createdAt: CreationOptional<Date>;
-	declare updatedAt: CreationOptional<Date>;
 
-	static associate(models: Record<string, ModelStatic<any>>) {
-		Role.belongsToMany(models.User, { through: models.UserRole, as: 'users' });
-	}
+	@AllowNull(true)
+	@Column(DataType.TEXT)
+	declare description: string | null;
+
+	@Column(DataType.DATE)
+	declare createdAt: Date;
+
+	@Column(DataType.DATE)
+	declare updatedAt: Date;
+
+	@BelongsToMany(() => User, () => UserRole)
+	declare users?: User[];
 }
-
-Role.init(
-	{
-		id: {
-			type: DataTypes.UUID,
-			primaryKey: true,
-			defaultValue: sequelize.literal('uuidv7()'),
-		},
-		name: {
-			type: DataTypes.ENUM(...Object.values(RoleName)),
-			allowNull: false,
-		},
-		description: { type: DataTypes.TEXT, allowNull: true },
-		createdAt: DataTypes.DATE,
-		updatedAt: DataTypes.DATE,
-	},
-	{
-		sequelize,
-		tableName: 'roles',
-		timestamps: true,
-		underscored: true,
-		indexes: [{ unique: true, fields: ['name'] }],
-	},
-);

@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 import { isSellerGuard } from '@/lib/guards';
 
-import { sellerController } from '.';
+import { sellerController } from './seller.controller';
 
 export const sellerRouter: Router = Router();
 

@@ -11,21 +11,19 @@ import {
 	Table,
 } from 'sequelize-typescript';
 
+import { Product } from '@/product/product.model';
 import { User } from '@/user/user.model';
 
-import { Provider } from './auth.enum';
-
 @Table({
-	tableName: 'oauth_accounts',
+	tableName: 'cart_items',
 	timestamps: true,
 	underscored: true,
 	indexes: [
-		{ unique: true, fields: ['user_id', 'provider'] },
-		{ unique: true, fields: ['provider', 'provider_sub'] },
+		{ unique: true, fields: ['user_id', 'product_id'] },
 		{ fields: ['user_id'] },
 	],
 })
-export class OAuthAccount extends Model {
+export class CartItem extends Model {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
@@ -37,12 +35,14 @@ export class OAuthAccount extends Model {
 	declare userId: string;
 
 	@AllowNull(false)
-	@Column(DataType.ENUM(...Object.values(Provider)))
-	declare provider: Provider;
+	@ForeignKey(() => Product)
+	@Column(DataType.UUID)
+	declare productId: string;
 
 	@AllowNull(false)
-	@Column(DataType.STRING)
-	declare providerSub: string;
+	@Default(1)
+	@Column(DataType.INTEGER)
+	declare quantity: number;
 
 	@Column(DataType.DATE)
 	declare createdAt: Date;
@@ -52,4 +52,7 @@ export class OAuthAccount extends Model {
 
 	@BelongsTo(() => User)
 	declare user?: User;
+
+	@BelongsTo(() => Product)
+	declare product?: Product;
 }
