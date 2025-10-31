@@ -1,11 +1,6 @@
-import { z } from 'zod';
-
 import { sequelize } from '@/lib/config';
-import {
-	NotFound,
-	SequelizeUniqueConstraintError,
-	UnprocessableEntity,
-} from '@/lib/exceptions';
+import { NotFound, SequelizeUniqueConstraintError } from '@/lib/exceptions';
+import { validateWithZodSchema } from '@/lib/utils';
 
 import { Address } from './address.model';
 import {
@@ -38,16 +33,11 @@ export const addressService: AddressService = {
 	},
 
 	createAddress: async (userId, rawAddressData) => {
-		const validationResult =
-			await CreateAddressDto.safeParseAsync(rawAddressData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid address data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
-		const addressData = validationResult.data;
+		const addressData = await validateWithZodSchema(
+			CreateAddressDto,
+			rawAddressData,
+			'Invalid address data',
+		);
 
 		try {
 			return sequelize.transaction(async (transaction) => {
@@ -79,16 +69,11 @@ export const addressService: AddressService = {
 	},
 
 	updateAddress: async (userId, addressId, rawUpdateData) => {
-		const validationResult =
-			await UpdateAddressDto.safeParseAsync(rawUpdateData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid address data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
-		const updateData = validationResult.data;
+		const updateData = await validateWithZodSchema(
+			UpdateAddressDto,
+			rawUpdateData,
+			'Invalid address data',
+		);
 
 		const address = await Address.findOne({
 			where: { id: addressId, userId },
@@ -171,7 +156,7 @@ export const addressService: AddressService = {
 		return sequelize.transaction(async (transaction) => {
 			const results = [];
 
-			for (const { addressId, data } of updates) {
+			for (const { addressId, data: rawData } of updates) {
 				const address = await Address.findOne({
 					where: { id: addressId, userId },
 					transaction,
@@ -181,16 +166,11 @@ export const addressService: AddressService = {
 					throw new NotFound(`Address with ID ${addressId} not found.`);
 				}
 
-				// Validate update data
-				const validationResult = await UpdateAddressDto.safeParseAsync(data);
-				if (validationResult.error) {
-					throw new UnprocessableEntity(
-						`Invalid data for address ${addressId}.`,
-						z.treeifyError(validationResult.error),
-					);
-				}
-
-				const updateData = validationResult.data;
+				const updateData = await validateWithZodSchema(
+					UpdateAddressDto,
+					rawData,
+					`Invalid data for address ${addressId}`,
+				);
 
 				// Handle default address logic
 				if (updateData.isDefault) {

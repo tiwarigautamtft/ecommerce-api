@@ -1,12 +1,10 @@
-import z from 'zod';
-
 import {
 	Forbidden,
 	InternalServerError,
 	NotFound,
 	SequelizeUniqueConstraintError,
-	UnprocessableEntity,
 } from '@/lib/exceptions';
+import { validateWithZodSchema } from '@/lib/utils';
 import { Product } from '@/product/product.model';
 
 import { CartItem } from './cart-item.model';
@@ -27,15 +25,11 @@ export const cartService: CartService = {
 	},
 
 	addToCart: async (userId, rawCartData) => {
-		const validationResult = await AddToCartDto.safeParseAsync(rawCartData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid cart data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
-		const { productId, quantity } = validationResult.data;
+		const { productId, quantity } = await validateWithZodSchema(
+			AddToCartDto,
+			rawCartData,
+			'Invalid cart data',
+		);
 
 		const product = await Product.findByPk(productId);
 		if (!product) {
@@ -63,15 +57,11 @@ export const cartService: CartService = {
 	},
 
 	updateCartItem: async (userId, itemId, rawUpdateData) => {
-		const validationResult = await UpdateCartDto.safeParseAsync(rawUpdateData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid cart data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
-		const { quantity } = validationResult.data;
+		const { quantity } = await validateWithZodSchema(
+			UpdateCartDto,
+			rawUpdateData,
+			'Invalid cart data',
+		);
 
 		const cartItem = await CartItem.findByPk(itemId);
 		if (!cartItem) {

@@ -1,7 +1,8 @@
 import { Op } from 'sequelize';
 import z from 'zod';
 
-import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/exceptions';
+import { NotFound, UnprocessableEntity } from '@/lib/exceptions';
+import { validateWithZodSchema } from '@/lib/utils';
 import { Seller } from '@/seller/seller.model';
 
 import { SearchProductDto } from './dto';
@@ -9,31 +10,24 @@ import { Product } from './product.model';
 import { Tag } from './tag.model';
 
 export const productService: ProductService = {
-	getProductById: async (productId) => {
-		const validationResult = await z.uuid().safeParseAsync(productId);
-		if (validationResult.error) {
-			throw new BadRequest(
-				'Invalid product ID.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
+	getProductById: async (rawProductId) => {
+		const productId = await validateWithZodSchema(
+			z.uuid(),
+			rawProductId,
+			'Invalid product ID',
+		);
 		const product = await Product.findByPk(productId);
 		if (!product) throw new NotFound('Product not found');
 		return product;
 	},
 
 	searchProducts: async (rawQueryParams: any) => {
-		const validationResult =
-			await SearchProductDto.safeParseAsync(rawQueryParams);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid query parameters.',
-				z.treeifyError(validationResult.error),
-			);
-		}
+		const data = await validateWithZodSchema(
+			SearchProductDto,
+			rawQueryParams,
+			'Invalid query parameter(s)',
+		);
 
-		const data = validationResult.data;
 		const whereClause = {
 			...(data.name ? { name: { [Op.iLike]: `%${data.name}%` } } : {}),
 			...(data.minPrice !== undefined || data.maxPrice !== undefined

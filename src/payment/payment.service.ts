@@ -1,7 +1,7 @@
 import sequelize from 'sequelize';
-import z from 'zod';
 
-import { NotFound, UnprocessableEntity } from '@/lib/exceptions';
+import { NotFound } from '@/lib/exceptions';
+import { validateWithZodSchema } from '@/lib/utils';
 import { Order } from '@/order/order.model';
 import { CreatePaymentDto } from '@/user/dto';
 
@@ -10,16 +10,11 @@ import { PaymentAttempt } from './payment.model';
 
 export const paymentService: PaymentService = {
 	makePaymentForOrder: async (userId, orderId, rawPaymentData) => {
-		const validationResult =
-			await CreatePaymentDto.safeParseAsync(rawPaymentData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid payment data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
-		const { amount } = validationResult.data;
+		const { amount } = await validateWithZodSchema(
+			CreatePaymentDto,
+			rawPaymentData,
+			'Invalid payment data',
+		);
 
 		const order = await Order.findOne({ where: { id: orderId, userId } });
 		if (!order) throw new NotFound('Order not found.');

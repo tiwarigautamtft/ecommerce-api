@@ -1,10 +1,9 @@
-import z from 'zod';
-
 import { Address } from '@/address/address.model';
 import { addressService } from '@/address/address.service';
 import { CartItem } from '@/cart/cart-item.model';
 import { sequelize } from '@/lib/config';
 import { NotFound, UnprocessableEntity } from '@/lib/exceptions';
+import { validateWithZodSchema } from '@/lib/utils';
 import { PaymentAttempt } from '@/payment/payment.model';
 import { Product } from '@/product/product.model';
 import { Seller } from '@/seller/seller.model';
@@ -16,16 +15,12 @@ import { Order } from './order.model';
 
 export const orderService: OrderService = {
 	placeOrder: async (userId, rawOrderData, useCart = false) => {
-		const validationResult = await PlaceOrderDto.safeParseAsync(rawOrderData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid order data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
 		const { shippingAddress: shippingAddressInput, items: directItems } =
-			validationResult.data;
+			await validateWithZodSchema(
+				PlaceOrderDto,
+				rawOrderData,
+				'Invalid order data',
+			);
 
 		const shippingAddressId = await addressService.resolveShippingAddress(
 			userId,
@@ -192,7 +187,7 @@ export const orderService: OrderService = {
 
 		if (!order) throw new NotFound('Order not found.');
 
-		const cancellableItems = order.OrderItems.filter(
+		const cancellableItems = order.orderItems!.filter(
 			(item) => item.status === OrderItemStatus.PENDING,
 		);
 		if (cancellableItems.length === 0) {
@@ -268,7 +263,7 @@ interface OrderService {
 	}>;
 	getAllOrders: (userId: string) => Promise<Order[]>;
 	getOrder: (userId: string, orderId: string) => Promise<Order>;
-	cancelOrder: (userId: string, orderId: string) => Promise<Order>;
+	cancelOrder: (userId: string, orderId: string) => Promise<Order | null>;
 	getOrderStatus: (orderId: string) => Promise<{
 		orderId: string;
 		statusCounts: Record<string, number>;

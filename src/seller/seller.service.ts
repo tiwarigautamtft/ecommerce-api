@@ -8,8 +8,8 @@ import {
 	InternalServerError,
 	NotFound,
 	SequelizeUniqueConstraintError,
-	UnprocessableEntity,
 } from '@/lib/exceptions';
+import { validateWithZodSchema } from '@/lib/utils';
 import { OrderItem } from '@/order/order-item.model';
 import { CancellationBy, OrderItemStatus } from '@/order/order.enum';
 import { Order } from '@/order/order.model';
@@ -39,16 +39,11 @@ export const sellerService: SellerService = {
 	},
 
 	createCurrentSellerProfile: async (userId, rawProfileData) => {
-		const validationResult =
-			await CreateSellerProfileDto.safeParseAsync(rawProfileData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid profile data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
-		const { storeName } = validationResult.data;
+		const { storeName } = await validateWithZodSchema(
+			CreateSellerProfileDto,
+			rawProfileData,
+			'Invalid profile data',
+		);
 
 		try {
 			const result = await sequelize.transaction(async (transaction) => {
@@ -96,14 +91,11 @@ export const sellerService: SellerService = {
 	},
 
 	createProduct: async (userId, rawProductData) => {
-		const validationResult =
-			await CreateProductDto.safeParseAsync(rawProductData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid product data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
+		const data = await validateWithZodSchema(
+			CreateProductDto,
+			rawProductData,
+			'Invalid product data',
+		);
 
 		const seller = await Seller.findOne({
 			where: { userId },
@@ -111,7 +103,6 @@ export const sellerService: SellerService = {
 		});
 		if (!seller) throw new NotFound('Seller profile not found.');
 
-		const data = validationResult.data;
 		return Product.create({ ...data, sellerId: seller.id });
 	},
 
@@ -129,16 +120,12 @@ export const sellerService: SellerService = {
 	},
 
 	updateProductById: async (userId, productId, rawUpdateData) => {
-		const validationResult =
-			await UpdateProductDto.safeParseAsync(rawUpdateData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid product data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
+		const data = await validateWithZodSchema(
+			UpdateProductDto,
+			rawUpdateData,
+			'Invalid product data',
+		);
 
-		const data = validationResult.data;
 		const seller = await Seller.findOne({ where: { userId } });
 		if (!seller) throw new NotFound('Seller profile not found.');
 
@@ -167,16 +154,12 @@ export const sellerService: SellerService = {
 	},
 
 	searchOwnProducts: async (userId, rawQueryParams) => {
-		const validationResult =
-			await SearchProductDto.safeParseAsync(rawQueryParams);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid query parameters.',
-				z.treeifyError(validationResult.error),
-			);
-		}
+		const data = await validateWithZodSchema(
+			SearchProductDto,
+			rawQueryParams,
+			'Invalid query parameter(s)',
+		);
 
-		const data = validationResult.data;
 		const seller = await Seller.findOne({ where: { userId } });
 		if (!seller) throw new NotFound('Seller profile not found.');
 
@@ -230,17 +213,11 @@ export const sellerService: SellerService = {
 	},
 
 	updatePublishedStatusOfAllProducts: async (userId, rawStatusData) => {
-		const validationResult = z
-			.object({ isPublished: z.boolean() })
-			.safeParse(rawStatusData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid status data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
-		const { isPublished } = validationResult.data;
+		const { isPublished } = await validateWithZodSchema(
+			z.object({ isPublished: z.boolean() }),
+			rawStatusData,
+			'Invalid status data',
+		);
 		const seller = await Seller.findOne({ where: { userId } });
 		if (!seller) throw new NotFound('Seller profile not found.');
 
@@ -253,16 +230,12 @@ export const sellerService: SellerService = {
 	},
 
 	createProductTags: async (userId, productId, rawTagData) => {
-		const validationResult =
-			await CreateProductTagsDto.safeParseAsync(rawTagData);
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid tag data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
+		const { names } = await validateWithZodSchema(
+			CreateProductTagsDto,
+			rawTagData,
+			'Invalid tag data',
+		);
 
-		const { names } = validationResult.data;
 		const seller = await Seller.findOne({ where: { userId } });
 		if (!seller) throw new NotFound('Seller profile not found.');
 
@@ -417,20 +390,14 @@ export const sellerService: SellerService = {
 	},
 
 	updateOrderStatus: async (userId, orderId, itemId, rawStatusData) => {
-		const validationResult = z
-			.object({
+		const { status } = await validateWithZodSchema(
+			z.object({
 				status: z.enum(Object.values(OrderItemStatus) as [string, ...string[]]),
-			})
-			.safeParse(rawStatusData);
+			}),
+			rawStatusData,
+			'Invalid status data',
+		);
 
-		if (validationResult.error) {
-			throw new UnprocessableEntity(
-				'Invalid status data.',
-				z.treeifyError(validationResult.error),
-			);
-		}
-
-		const { status } = validationResult.data;
 		const seller = await Seller.findOne({ where: { userId } });
 		if (!seller) throw new NotFound('Seller profile not found.');
 

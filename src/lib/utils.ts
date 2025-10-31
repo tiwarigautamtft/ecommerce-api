@@ -1,5 +1,8 @@
 import fs from 'fs/promises';
 import ms, { StringValue } from 'ms';
+import z from 'zod';
+
+import { UnprocessableEntity } from './exceptions';
 
 // import cloudinary from '@/config/cloudinary';
 
@@ -33,4 +36,20 @@ import ms, { StringValue } from 'ms';
 
 export function sec(s: StringValue): number {
 	return ms(s) / 1000;
+}
+
+export async function validateWithZodSchema<T extends z.ZodType>(
+	schema: T,
+	rawData: any,
+	message: string = 'Invalid input',
+): Promise<z.infer<T>> {
+	const validationResult = await schema.safeParseAsync(rawData);
+	if (validationResult.error) {
+		throw new UnprocessableEntity(
+			message,
+			z.treeifyError(validationResult.error),
+		);
+	}
+
+	return validationResult.data;
 }
