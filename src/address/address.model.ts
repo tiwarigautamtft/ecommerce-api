@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsTo,
@@ -27,11 +32,14 @@ import { User } from '@/user/user.model';
 		{ fields: ['state'] },
 	],
 })
-export class Address extends Model {
+export class Address extends Model<
+	InferAttributes<Address>,
+	InferCreationAttributes<Address>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@ForeignKey(() => User)
@@ -52,7 +60,7 @@ export class Address extends Model {
 
 	@AllowNull(true)
 	@Column(DataType.STRING)
-	declare addressLineTwo: string | null;
+	declare addressLineTwo: CreationOptional<string | null>;
 
 	@AllowNull(false)
 	@Column(DataType.STRING)
@@ -73,13 +81,13 @@ export class Address extends Model {
 	@AllowNull(false)
 	@Default(false)
 	@Column(DataType.BOOLEAN)
-	declare isDefault: boolean;
+	declare isDefault: CreationOptional<boolean>;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsTo(() => User)
 	declare user?: User;

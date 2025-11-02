@@ -1,6 +1,11 @@
 import { init } from '@paralleldrive/cuid2';
 
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsTo,
@@ -15,9 +20,10 @@ import {
 } from 'sequelize-typescript';
 
 import { Address } from '@/address/address.model';
-import { OrderItem } from '@/order/order-item.model';
 import { PaymentAttempt } from '@/payment/payment.model';
 import { User } from '@/user/user.model';
+
+import { OrderItem } from './order-item.model';
 
 const createCuid = init({
 	length: 9,
@@ -37,11 +43,14 @@ function createOrderNumber() {
 		{ fields: ['total'] },
 	],
 })
-export class Order extends Model {
+export class Order extends Model<
+	InferAttributes<Order>,
+	InferCreationAttributes<Order>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@ForeignKey(() => User)
@@ -51,7 +60,7 @@ export class Order extends Model {
 	@AllowNull(false)
 	@Default(createOrderNumber)
 	@Column(DataType.STRING(9))
-	declare orderNumber: string;
+	declare orderNumber: CreationOptional<string>;
 
 	@AllowNull(false)
 	@Column(DataType.INTEGER)
@@ -63,10 +72,10 @@ export class Order extends Model {
 	declare shippingAddressId: string;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsTo(() => User)
 	declare user?: User;

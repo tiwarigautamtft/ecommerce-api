@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsTo,
@@ -21,11 +26,14 @@ import { PaymentStatus } from './payment-status.enum';
 	underscored: true,
 	indexes: [{ fields: ['order_id'] }, { fields: ['order_id', 'status'] }],
 })
-export class PaymentAttempt extends Model {
+export class PaymentAttempt extends Model<
+	InferAttributes<PaymentAttempt>,
+	InferCreationAttributes<PaymentAttempt>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@ForeignKey(() => Order)
@@ -39,13 +47,13 @@ export class PaymentAttempt extends Model {
 	@AllowNull(false)
 	@Default(PaymentStatus.PROCESSING)
 	@Column(DataType.ENUM(...Object.values(PaymentStatus)))
-	declare status: PaymentStatus;
+	declare status: CreationOptional<PaymentStatus>;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsTo(() => Order)
 	declare order?: Order;

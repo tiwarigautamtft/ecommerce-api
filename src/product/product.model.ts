@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsTo,
@@ -33,11 +38,14 @@ import { Tag } from './tag.model';
 		{ fields: ['seller_id', 'is_published'] },
 	],
 })
-export class Product extends Model {
+export class Product extends Model<
+	InferAttributes<Product>,
+	InferCreationAttributes<Product>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@ForeignKey(() => Seller)
@@ -50,7 +58,7 @@ export class Product extends Model {
 
 	@AllowNull(true)
 	@Column(DataType.TEXT)
-	declare description: string | null;
+	declare description: CreationOptional<string | null>;
 
 	@AllowNull(false)
 	@Column(DataType.INTEGER)
@@ -63,13 +71,13 @@ export class Product extends Model {
 	@AllowNull(false)
 	@Default(true)
 	@Column(DataType.BOOLEAN)
-	declare isPublished: boolean;
+	declare isPublished: CreationOptional<boolean>;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsTo(() => Seller)
 	declare seller?: Seller;

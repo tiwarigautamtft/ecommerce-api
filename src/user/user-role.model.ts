@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsTo,
@@ -23,11 +28,14 @@ import { User } from '@/user/user.model';
 		{ fields: ['user_id'] },
 	],
 })
-export class UserRole extends Model {
+export class UserRole extends Model<
+	InferAttributes<UserRole>,
+	InferCreationAttributes<UserRole>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@ForeignKey(() => User)
@@ -40,10 +48,10 @@ export class UserRole extends Model {
 	declare roleId: string;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsTo(() => User)
 	declare user?: User;

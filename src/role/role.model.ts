@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsToMany,
@@ -21,11 +26,14 @@ import { RoleName } from './role.enum';
 	underscored: true,
 	indexes: [{ unique: true, fields: ['name'] }],
 })
-export class Role extends Model {
+export class Role extends Model<
+	InferAttributes<Role>,
+	InferCreationAttributes<Role>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@Column(DataType.ENUM(...Object.values(RoleName)))
@@ -33,13 +41,13 @@ export class Role extends Model {
 
 	@AllowNull(true)
 	@Column(DataType.TEXT)
-	declare description: string | null;
+	declare description: CreationOptional<string | null>;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsToMany(() => User, () => UserRole)
 	declare users?: User[];

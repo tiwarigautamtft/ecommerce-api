@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsToMany,
@@ -19,21 +24,24 @@ import { Product } from '@/product/product.model';
 	underscored: true,
 	indexes: [{ unique: true, fields: ['name'] }],
 })
-export class Tag extends Model {
+export class Tag extends Model<
+	InferAttributes<Tag>,
+	InferCreationAttributes<Tag>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@Column(DataType.STRING)
 	declare name: string;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsToMany(() => Product, () => ProductTag)
 	declare products?: Product[];

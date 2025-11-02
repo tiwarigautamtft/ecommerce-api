@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsTo,
@@ -25,11 +30,14 @@ import { Provider } from './auth.enum';
 		{ fields: ['user_id'] },
 	],
 })
-export class OAuthAccount extends Model {
+export class OAuthAccount extends Model<
+	InferAttributes<OAuthAccount>,
+	InferCreationAttributes<OAuthAccount>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@ForeignKey(() => User)
@@ -45,10 +53,10 @@ export class OAuthAccount extends Model {
 	declare providerSub: string;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsTo(() => User)
 	declare user?: User;

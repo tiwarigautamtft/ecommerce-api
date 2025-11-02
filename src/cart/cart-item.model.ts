@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsTo,
@@ -23,11 +28,14 @@ import { User } from '@/user/user.model';
 		{ fields: ['user_id'] },
 	],
 })
-export class CartItem extends Model {
+export class CartItem extends Model<
+	InferAttributes<CartItem>,
+	InferCreationAttributes<CartItem>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@ForeignKey(() => User)
@@ -42,13 +50,13 @@ export class CartItem extends Model {
 	@AllowNull(false)
 	@Default(1)
 	@Column(DataType.INTEGER)
-	declare quantity: number;
+	declare quantity: CreationOptional<number>;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsTo(() => User)
 	declare user?: User;

@@ -1,4 +1,9 @@
-import { Optional, Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsTo,
@@ -31,11 +36,14 @@ import { User } from '@/user/user.model';
 		{ unique: true, fields: ['store_name'] },
 	],
 })
-export class Seller extends Model {
+export class Seller extends Model<
+	InferAttributes<Seller>,
+	InferCreationAttributes<Seller>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@ForeignKey(() => User)
@@ -47,10 +55,10 @@ export class Seller extends Model {
 	declare storeName: string;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsTo(() => User)
 	declare user?: User;

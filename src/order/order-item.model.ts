@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsTo,
@@ -30,11 +35,14 @@ import { CancellationBy, OrderItemStatus } from './order.enum';
 		{ fields: ['seller_id', 'status'] },
 	],
 })
-export class OrderItem extends Model {
+export class OrderItem extends Model<
+	InferAttributes<OrderItem>,
+	InferCreationAttributes<OrderItem>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@ForeignKey(() => Order)
@@ -66,18 +74,18 @@ export class OrderItem extends Model {
 	@AllowNull(false)
 	@Default(OrderItemStatus.PENDING)
 	@Column(DataType.ENUM(...Object.values(OrderItemStatus)))
-	declare status: OrderItemStatus;
+	declare status: CreationOptional<OrderItemStatus>;
 
 	@AllowNull(false)
 	@Default(CancellationBy.NONE)
 	@Column(DataType.ENUM(...Object.values(CancellationBy)))
-	declare cancelledBy: CancellationBy;
+	declare cancelledBy: CreationOptional<CancellationBy>;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@BelongsTo(() => Order)
 	declare order?: Order;

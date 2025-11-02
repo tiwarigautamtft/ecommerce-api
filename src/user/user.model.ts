@@ -1,4 +1,9 @@
-import { Sequelize } from 'sequelize';
+import {
+	CreationOptional,
+	InferAttributes,
+	InferCreationAttributes,
+	Sequelize,
+} from 'sequelize';
 import {
 	AllowNull,
 	BelongsToMany,
@@ -41,11 +46,14 @@ import { UserRole } from '@/user/user-role.model';
 	underscored: true,
 	indexes: [{ unique: true, fields: ['email'] }],
 })
-export class User extends Model {
+export class User extends Model<
+	InferAttributes<User>,
+	InferCreationAttributes<User>
+> {
 	@PrimaryKey
 	@Default(Sequelize.literal('uuidv7()'))
 	@Column(DataType.UUID)
-	declare id: string;
+	declare id: CreationOptional<string>;
 
 	@AllowNull(false)
 	@IsEmail
@@ -55,7 +63,7 @@ export class User extends Model {
 	@AllowNull(false)
 	@Default(false)
 	@Column(DataType.BOOLEAN)
-	declare emailVerified: boolean;
+	declare emailVerified: CreationOptional<boolean>;
 
 	@AllowNull(false)
 	@Column(DataType.STRING)
@@ -64,13 +72,13 @@ export class User extends Model {
 	@AllowNull(true)
 	@IsUrl
 	@Column(DataType.STRING)
-	declare avatarUrl: string | null;
+	declare avatarUrl: CreationOptional<string | null>;
 
 	@Column(DataType.DATE)
-	declare createdAt: Date;
+	declare createdAt: CreationOptional<Date>;
 
 	@Column(DataType.DATE)
-	declare updatedAt: Date;
+	declare updatedAt: CreationOptional<Date>;
 
 	@HasOne(() => Seller)
 	declare seller?: Seller;
