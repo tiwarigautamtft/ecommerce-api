@@ -1,4 +1,4 @@
-import { RoleName } from '@/role';
+import { RoleName } from '@/role/role.enum';
 
 export interface SessionUser {
 	id: string;

@@ -1,4 +1,4 @@
-import type { SessionUser } from '.';
+import type { SessionUser } from './session-user';
 
 // declare module 'express-serve-static-core' {
 // 	interface User extends SessionUser {}
