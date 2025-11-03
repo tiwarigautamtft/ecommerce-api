@@ -31,7 +31,7 @@ const rateLimiterStores = {
 const globalRateLimit = rateLimit({
 	store: rateLimiterStores.global,
 	windowMs: ms(env.RATE_LIMIT_WINDOW_MS),
-	max: parseInt(env.RATE_LIMIT_WINDOW_MAX),
+	max: env.RATE_LIMIT_WINDOW_MAX,
 	message: {
 		error: 'Too many requests from this IP, please try again later.',
 		retryAfter: ms(ms(env.RATE_LIMIT_WINDOW_MS), { long: true }),
@@ -45,7 +45,7 @@ const globalRateLimit = rateLimit({
 const authRateLimit = rateLimit({
 	store: rateLimiterStores.auth,
 	windowMs: ms(env.AUTH_RATE_LIMIT_WINDOW_MS),
-	max: parseInt(env.AUTH_RATE_LIMIT_WINDOW_MAX),
+	max: env.AUTH_RATE_LIMIT_WINDOW_MAX,
 	message: {
 		error:
 			'Too many authentication attempts from this IP, please try again later.',
@@ -61,7 +61,7 @@ const authRateLimit = rateLimit({
 const uploadRateLimit = rateLimit({
 	store: rateLimiterStores.upload,
 	windowMs: ms(env.UPLOAD_RATE_LIMIT_WINDOW_MS),
-	max: parseInt(env.UPLOAD_RATE_LIMIT_WINDOW_MAX),
+	max: env.UPLOAD_RATE_LIMIT_WINDOW_MAX,
 	message: {
 		error: 'Too many upload attempts, please try again later.',
 		retryAfter: ms(ms(env.UPLOAD_RATE_LIMIT_WINDOW_MS), { long: true }),

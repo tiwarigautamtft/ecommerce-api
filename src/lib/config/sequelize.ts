@@ -39,7 +39,7 @@ export const devSync = async (s: Sequelize) => {
 		await s.authenticate();
 		console.log('Database connection setup successfully!');
 
-		if (env.NODE_ENV === 'development') {
+		if (env.isDev) {
 			try {
 				await s.sync({ alter: true, logging: false });
 				console.log('Database sync successful');

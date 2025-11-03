@@ -17,7 +17,7 @@ const sessionOptions: SessionOptions = {
 	resave: false,
 	saveUninitialized: true,
 	cookie: {
-		secure: env.NODE_ENV === 'production',
+		secure: env.isProd,
 		httpOnly: true,
 		sameSite: 'lax',
 		maxAge: ms(env.SESSION_EXPIRY),

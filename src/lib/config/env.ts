@@ -1,51 +1,60 @@
 import { configDotenv } from 'dotenv';
-import { StringValue } from 'ms';
+import ms, { StringValue } from 'ms';
+import z from 'zod';
 
 configDotenv();
 
-export const env = {
-	NODE_ENV: getEnvVar('NODE_ENV'),
-	PORT: getEnvVar('PORT'),
+const StringValueSchema = z.custom<StringValue>(
+	(val) => typeof val === 'string' && !!ms(val as StringValue),
+);
 
-	DB_NAME: getEnvVar('DB_NAME'),
-	DB_URL: getEnvVar('DB_URL'),
-	DB_USERNAME: getEnvVar('DB_USERNAME'),
-	DB_PASSWORD: getEnvVar('DB_PASSWORD'),
-	DB_DIALECT: getEnvVar('DB_DIALECT'),
-
-	SESSION_SECRET: getEnvVar('SESSION_SECRET'),
-	SESSION_EXPIRY: getEnvVar('SESSION_EXPIRY') as StringValue,
-
-	GOOGLE_CLIENT_ID: getEnvVar('GOOGLE_CLIENT_ID'),
-	GOOGLE_CLIENT_SECRET: getEnvVar('GOOGLE_CLIENT_SECRET'),
-
-	REDIS_URL: getEnvVar('REDIS_URL'),
-
-	RATE_LIMIT_WINDOW_MS: getEnvVar('RATE_LIMIT_WINDOW_MS') as StringValue,
-	RATE_LIMIT_WINDOW_MAX: getEnvVar('RATE_LIMIT_WINDOW_MAX'),
-
-	AUTH_RATE_LIMIT_WINDOW_MS: getEnvVar(
-		'AUTH_RATE_LIMIT_WINDOW_MS',
-	) as StringValue,
-	AUTH_RATE_LIMIT_WINDOW_MAX: getEnvVar('AUTH_RATE_LIMIT_WINDOW_MAX'),
-
-	UPLOAD_RATE_LIMIT_WINDOW_MS: getEnvVar(
-		'UPLOAD_RATE_LIMIT_WINDOW_MS',
-	) as StringValue,
-	UPLOAD_RATE_LIMIT_WINDOW_MAX: getEnvVar('UPLOAD_RATE_LIMIT_WINDOW_MAX'),
-
-	API_RATE_LIMIT_WINDOW_MS: getEnvVar(
-		'API_RATE_LIMIT_WINDOW_MS',
-	) as StringValue,
-	API_RATE_LIMIT_WINDOW_MAX: getEnvVar('API_RATE_LIMIT_WINDOW_MAX'),
-
-	CLOUDINARY_CLOUD_NAME: getEnvVar('CLOUDINARY_CLOUD_NAME'),
-	CLOUDINARY_API_KEY: getEnvVar('CLOUDINARY_API_KEY'),
-	CLOUDINARY_API_SECRET: getEnvVar('CLOUDINARY_API_SECRET'),
-};
-
-function getEnvVar(key: string): string {
-	if (!process.env[key])
-		throw new Error(`Environment variable \`${key}\` not found`);
-	return process.env[key];
+enum NodeEnv {
+	DEVELOPMENT = 'development',
+	PRODUCTION = 'production',
+	TEST = 'test',
+	STAGING = 'staging',
 }
+
+const EnvSchema = z
+	.object({
+		NODE_ENV: z.enum([...Object.values(NodeEnv)]),
+		PORT: z.coerce.number().min(1).max(65535),
+
+		DB_NAME: z.string(),
+		DB_URL: z.url(),
+		DB_USERNAME: z.string(),
+		DB_PASSWORD: z.string(),
+		DB_DIALECT: z.string(),
+
+		SESSION_SECRET: z.string(),
+		SESSION_EXPIRY: StringValueSchema,
+
+		GOOGLE_CLIENT_ID: z.string(),
+		GOOGLE_CLIENT_SECRET: z.string(),
+
+		REDIS_URL: z.url(),
+
+		RATE_LIMIT_WINDOW_MS: StringValueSchema,
+		RATE_LIMIT_WINDOW_MAX: z.coerce.number(),
+
+		AUTH_RATE_LIMIT_WINDOW_MS: StringValueSchema,
+		AUTH_RATE_LIMIT_WINDOW_MAX: z.coerce.number(),
+
+		UPLOAD_RATE_LIMIT_WINDOW_MS: StringValueSchema,
+		UPLOAD_RATE_LIMIT_WINDOW_MAX: z.coerce.number(),
+
+		API_RATE_LIMIT_WINDOW_MS: StringValueSchema,
+		API_RATE_LIMIT_WINDOW_MAX: z.coerce.number(),
+
+		// CLOUDINARY_CLOUD_NAME: z.string(),
+		// CLOUDINARY_API_KEY: z.string(),
+		// CLOUDINARY_API_SECRET: z.string(),
+	})
+	.transform((env) => ({
+		...env,
+		isProd: env.NODE_ENV === NodeEnv.PRODUCTION,
+		isDev: env.NODE_ENV === NodeEnv.DEVELOPMENT,
+		isTest: env.NODE_ENV === NodeEnv.TEST,
+	}));
+
+export const env = EnvSchema.parse(process.env);
