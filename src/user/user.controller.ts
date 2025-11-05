@@ -5,14 +5,14 @@ import { StatusCodes } from 'http-status-codes';
 import { userService } from './user.service';
 
 export const userController: UserController = {
-	getCurrentUser: (req, res) => {
+	getSessionUser: (req, res) => {
 		res.json(req.user);
 	},
 
 	deleteCurrentUser: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
 
-		userService.deleteUserById(req.user.id);
+		await userService.deleteUserById(req.user.id);
 
 		req.logout((error) => {
 			if (error) {
@@ -28,6 +28,6 @@ export const userController: UserController = {
 };
 
 interface UserController {
-	getCurrentUser: RequestHandler;
+	getSessionUser: RequestHandler;
 	deleteCurrentUser: RequestHandler;
 }

@@ -15,9 +15,9 @@ import {
 	Table,
 } from 'sequelize-typescript';
 
+import { UserRole } from '@/user/user-role.model';
 import { User } from '@/user/user.model';
 
-import { UserRole } from '../user/user-role.model';
 import { RoleName } from './role.enum';
 
 @Table({

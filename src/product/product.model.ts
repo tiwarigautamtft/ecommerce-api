@@ -22,8 +22,7 @@ import { CartItem } from '@/cart/cart-item.model';
 import { OrderItem } from '@/order/order-item.model';
 import { ProductTag } from '@/product/product-tag.model';
 import { Seller } from '@/seller/seller.model';
-
-import { Tag } from './tag.model';
+import { Tag } from '@/tag/tag.model';
 
 @Table({
 	tableName: 'products',

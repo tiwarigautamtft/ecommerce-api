@@ -25,7 +25,10 @@ import { OAuthAccount } from '@/auth/auth.model';
 import { CartItem } from '@/cart/cart-item.model';
 import { Role } from '@/role/role.model';
 import { Seller } from '@/seller/seller.model';
+import { Tag } from '@/tag/tag.model';
 import { UserRole } from '@/user/user-role.model';
+
+import { UserPreference } from './user-preference.model';
 
 @Scopes(() => ({
 	sessionUser: {
@@ -94,4 +97,7 @@ export class User extends Model<
 
 	@BelongsToMany(() => Role, () => UserRole)
 	declare roles?: Role[];
+
+	@BelongsToMany(() => Tag, () => UserPreference)
+	declare preferences?: UserPreference[];
 }

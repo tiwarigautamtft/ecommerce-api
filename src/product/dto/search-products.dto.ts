@@ -1,7 +1,7 @@
 import z from 'zod';
 
-export const SearchProductDto = z.object({
-	name: z.string().min(0).max(255).optional(),
+export const SearchProductsDto = z.object({
+	query: z.string().min(0).max(255).optional(),
 	sortBy: z
 		.enum(['price', 'name', 'createdAt'])
 		.optional()
@@ -13,4 +13,4 @@ export const SearchProductDto = z.object({
 	limit: z.coerce.number().int().min(1).max(100).optional().default(20),
 });
 
-export type SearchProductDtoType = z.infer<typeof SearchProductDto>;
+export type SearchProductsDtoType = z.infer<typeof SearchProductsDto>;

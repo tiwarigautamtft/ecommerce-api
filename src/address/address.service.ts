@@ -1,5 +1,9 @@
 import { sequelize } from '@/lib/config';
-import { NotFound, SequelizeUniqueConstraintError } from '@/lib/exceptions';
+import {
+	NotFound,
+	SequelizeUniqueConstraintError,
+	UnprocessableEntity,
+} from '@/lib/exceptions';
 import { validateWithZodSchema } from '@/lib/utils';
 
 import { Address } from './address.model';
@@ -210,6 +214,43 @@ export const addressService: AddressService = {
 	getAddressCount: async (userId) => {
 		return Address.count({ where: { userId } });
 	},
+
+	resolveShippingAddress: async (userId, shippingAddressInput) => {
+		if (typeof shippingAddressInput === 'string') {
+			const address = await Address.findOne({
+				where: { userId, alias: shippingAddressInput },
+			});
+			if (!address)
+				throw new NotFound(
+					`Address with alias '${shippingAddressInput}' not found.`,
+				);
+			return address.id;
+		}
+
+		if (typeof shippingAddressInput === 'object') {
+			if (shippingAddressInput.isDefault) {
+				await Address.update(
+					{ isDefault: false },
+					{ where: { userId, isDefault: true } },
+				);
+			}
+			const newAddress = await Address.create({
+				...shippingAddressInput,
+				userId,
+			});
+			return newAddress.id;
+		}
+
+		const defaultAddress = await Address.findOne({
+			where: { userId, isDefault: true },
+		});
+		if (!defaultAddress) {
+			throw new UnprocessableEntity(
+				'No default address found. Please provide a shipping address.',
+			);
+		}
+		return defaultAddress.id;
+	},
 };
 
 interface AddressService {
@@ -242,4 +283,8 @@ interface AddressService {
 	getAddressByAlias: (userId: string, alias: string) => Promise<Address>;
 	getAddressesByCity: (userId: string, city: string) => Promise<Address[]>;
 	getAddressCount: (userId: string) => Promise<number>;
+	resolveShippingAddress: (
+		userId: string,
+		shippingAddressInput: any,
+	) => Promise<string>;
 }

@@ -6,5 +6,5 @@ export interface SessionUser {
 	emailVerified: boolean;
 	name: string;
 	avatarUrl: string | null;
-	roles?: RoleName[];
+	roles: RoleName[];
 }

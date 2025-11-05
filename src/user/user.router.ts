@@ -6,9 +6,9 @@ import { orderRouter } from '@/order/order.router';
 
 import { userController } from './user.controller';
 
-export const userRouter: Router = Router();
+export const userRouter = Router();
 
-userRouter.get('/me', userController.getCurrentUser);
+userRouter.get('/me', userController.getSessionUser);
 userRouter.delete('/me', userController.deleteCurrentUser);
 
 userRouter.use('/me/addresses', addressRouter);

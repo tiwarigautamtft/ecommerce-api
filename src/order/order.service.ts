@@ -1,8 +1,11 @@
+import z from 'zod';
+
 import { Address } from '@/address/address.model';
 import { addressService } from '@/address/address.service';
 import { CartItem } from '@/cart/cart-item.model';
 import { sequelize } from '@/lib/config';
-import { NotFound, UnprocessableEntity } from '@/lib/exceptions';
+import { emitter } from '@/lib/events/emitter';
+import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/exceptions';
 import { validateWithZodSchema } from '@/lib/utils';
 import { PaymentAttempt } from '@/payment/payment.model';
 import { Product } from '@/product/product.model';
@@ -11,11 +14,12 @@ import { Seller } from '@/seller/seller.model';
 import { PlaceOrderDto } from './dto';
 import { OrderItem } from './order-item.model';
 import { CancellationBy, OrderItemStatus } from './order.enum';
+import { OrderEvent } from './order.event';
 import { Order } from './order.model';
 
 export const orderService: OrderService = {
 	placeOrder: async (userId, rawOrderData, useCart = false) => {
-		const { shippingAddress: shippingAddressInput, items: directItems } =
+		const { shippingAddress: shippingAddressInput, items } =
 			await validateWithZodSchema(
 				PlaceOrderDto,
 				rawOrderData,
@@ -29,7 +33,7 @@ export const orderService: OrderService = {
 		const orderItems = await orderService.resolveOrderItems(
 			userId,
 			useCart,
-			directItems,
+			items,
 		);
 		const { orderItemsWithDetails, total } =
 			await orderService.validateAndPrepareOrderItems(orderItems);
@@ -62,46 +66,11 @@ export const orderService: OrderService = {
 			return order;
 		});
 
+		emitter.emit(OrderEvent.ORDER_PLACED, userId, order);
+
 		return Order.findByPk(order.id, {
 			include: [OrderItem, Address],
 		});
-	},
-
-	resolveShippingAddress: async (userId, shippingAddressInput) => {
-		if (typeof shippingAddressInput === 'string') {
-			const address = await Address.findOne({
-				where: { userId, alias: shippingAddressInput },
-			});
-			if (!address)
-				throw new NotFound(
-					`Address with alias '${shippingAddressInput}' not found.`,
-				);
-			return address.id;
-		}
-
-		if (typeof shippingAddressInput === 'object') {
-			if (shippingAddressInput.isDefault) {
-				await Address.update(
-					{ isDefault: false },
-					{ where: { userId, isDefault: true } },
-				);
-			}
-			const newAddress = await Address.create({
-				...shippingAddressInput,
-				userId,
-			});
-			return newAddress.id;
-		}
-
-		const defaultAddress = await Address.findOne({
-			where: { userId, isDefault: true },
-		});
-		if (!defaultAddress) {
-			throw new UnprocessableEntity(
-				'No default address found. Please provide a shipping address.',
-			);
-		}
-		return defaultAddress.id;
 	},
 
 	resolveOrderItems: async (userId, useCart, directItems) => {
@@ -221,16 +190,142 @@ export const orderService: OrderService = {
 
 	getOrderStatus: async (orderId) => {
 		const orderItems = await OrderItem.findAll({ where: { orderId } });
-		const statusCounts = orderItems.reduce((acc, item) => {
-			acc[item.status] = (acc[item.status] || 0) + 1;
-			return acc;
-		}, {});
+		const statusCounts = orderItems.reduce(
+			(acc, item) => {
+				acc[item.status] = (acc[item.status] || 0) + 1;
+				return acc;
+			},
+			{} as Record<string, number>,
+		);
 
 		return {
 			orderId,
 			statusCounts,
 			totalItems: orderItems.length,
 		};
+	},
+
+	getAllOrdersBySeller: async (userId) => {
+		const seller = await Seller.findOne({
+			where: { userId },
+			attributes: ['id'],
+		});
+		if (!seller) throw new NotFound('Seller profile not found.');
+
+		const orders = await Order.findAll({
+			include: [
+				{
+					model: OrderItem,
+					where: { sellerId: seller.id },
+					include: [Product],
+					required: true,
+					order: [['productName', 'ASC']],
+				},
+				{ model: Address, as: 'shippingAddress' },
+			],
+			order: [['created_at', 'DESC']],
+		});
+
+		return orders.map((order) => ({
+			id: order.id,
+			orderNumber: order.orderNumber,
+			totalAmount: order.total,
+			shippingAddress: order.shippingAddress!,
+			createdAt: order.createdAt,
+			updatedAt: order.updatedAt,
+			orderItems: order.orderItems!.map((item) => ({
+				id: item.id,
+				product: item.product,
+				quantity: item.quantity,
+				unitPrice: item.unitPrice,
+				status: item.status,
+				cancelledBy: item.cancelledBy,
+			})),
+		}));
+	},
+
+	getOrderBySeller: async (userId, orderId) => {
+		const seller = await Seller.findOne({
+			where: { userId },
+			attributes: ['id'],
+		});
+		if (!seller) throw new NotFound('Seller profile not found.');
+
+		const order = await Order.findOne({
+			where: { id: orderId },
+			include: [
+				{
+					model: OrderItem,
+					where: { sellerId: seller.id },
+					include: [Product],
+					required: true,
+					order: [['productName', 'ASC']],
+				},
+				{ model: Address, as: 'shippingAddress' },
+			],
+			order: [['created_at', 'DESC']],
+		});
+
+		if (!order) {
+			throw new NotFound('Order not found');
+		}
+
+		if (!order.orderItems || order.orderItems.length === 0) {
+			throw new NotFound('No order items found');
+		}
+
+		return {
+			id: order.id,
+			orderNumber: order.orderNumber,
+			totalAmount: order.total,
+			shippingAddress: order.shippingAddress!,
+			createdAt: order.createdAt,
+			updatedAt: order.updatedAt,
+			orderItems: order.orderItems.map((item) => ({
+				id: item.id,
+				product: item.product,
+				quantity: item.quantity,
+				unitPrice: item.unitPrice,
+				status: item.status,
+				cancelledBy: item.cancelledBy,
+			})),
+		};
+	},
+
+	updateOrderStatusBySeller: async (userId, orderId, itemId, rawStatusData) => {
+		const { status } = await validateWithZodSchema(
+			z.object({ status: z.enum(Object.values(OrderItemStatus)) }),
+			rawStatusData,
+			'Invalid status data',
+		);
+
+		const seller = await Seller.findOne({
+			where: { userId },
+			attributes: ['id'],
+		});
+		if (!seller) throw new NotFound('Seller profile not found.');
+
+		const orderItem = await OrderItem.findOne({
+			where: { id: itemId, orderId, sellerId: seller.id },
+		});
+		if (!orderItem)
+			throw new NotFound('Order item not found or access denied.');
+
+		if (
+			orderItem.status === OrderItemStatus.DELIVERED &&
+			status !== OrderItemStatus.DELIVERED
+		) {
+			throw new BadRequest('Cannot change status of delivered item.');
+		}
+		if (
+			orderItem.status === OrderItemStatus.CANCELLED &&
+			status !== OrderItemStatus.CANCELLED
+		) {
+			throw new BadRequest('Cannot change status of cancelled item.');
+		}
+
+		await orderItem.update({ status });
+		return orderItem;
 	},
 };
 
@@ -240,14 +335,10 @@ interface OrderService {
 		rawOrderData: any,
 		useCart?: boolean,
 	) => Promise<Order | null>;
-	resolveShippingAddress: (
-		userId: string,
-		shippingAddressInput: any,
-	) => Promise<string>;
 	resolveOrderItems: (
 		userId: string,
 		useCart: boolean,
-		directItems: any[],
+		items: { productId: string; quantity: number }[] | undefined,
 	) => Promise<Array<{ productId: string; quantity: number }>>;
 	validateAndPrepareOrderItems: (
 		orderItems: Array<{ productId: string; quantity: number }>,
@@ -269,4 +360,47 @@ interface OrderService {
 		statusCounts: Record<string, number>;
 		totalItems: number;
 	}>;
+	getAllOrdersBySeller: (userId: string) => Promise<
+		Array<{
+			id: string;
+			orderNumber: string;
+			totalAmount: number;
+			createdAt: Date;
+			updatedAt: Date;
+			shippingAddress: Address;
+			orderItems: Array<{
+				id: string;
+				product: Product | undefined | null;
+				quantity: number;
+				unitPrice: number;
+				status: OrderItemStatus;
+				cancelledBy: CancellationBy;
+			}>;
+		}>
+	>;
+	getOrderBySeller: (
+		userId: string,
+		orderId: string,
+	) => Promise<{
+		id: string;
+		orderNumber: string;
+		totalAmount: number;
+		createdAt: Date;
+		updatedAt: Date;
+		shippingAddress: Address;
+		orderItems: Array<{
+			id: string;
+			product: Product | undefined | null;
+			quantity: number;
+			unitPrice: number;
+			status: OrderItemStatus;
+			cancelledBy: CancellationBy;
+		}>;
+	}>;
+	updateOrderStatusBySeller: (
+		userId: string,
+		orderId: string,
+		itemId: string,
+		rawStatusData: any,
+	) => Promise<OrderItem>;
 }

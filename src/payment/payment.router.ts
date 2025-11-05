@@ -2,14 +2,8 @@ import { Router } from 'express';
 
 import { paymentController } from './payment.controller';
 
-export const paymentRouter: Router = Router();
+export const paymentRouter = Router({ mergeParams: true });
 
-paymentRouter.post('/:orderId/payments', paymentController.makePaymentForOrder);
-paymentRouter.get(
-	'/:orderId/payments',
-	paymentController.getAllPaymentsForOrder,
-);
-paymentRouter.get(
-	'/:orderId/payments/:paymentId',
-	paymentController.getAPaymentForOrder,
-);
+paymentRouter.post('/', paymentController.makePaymentForOrder);
+paymentRouter.get('/', paymentController.getAllPaymentsForOrder);
+paymentRouter.get('/:paymentId', paymentController.getAPaymentForOrder);

@@ -17,6 +17,7 @@ import {
 
 import { ProductTag } from '@/product/product-tag.model';
 import { Product } from '@/product/product.model';
+import { UserPreference } from '@/user/user-preference.model';
 
 @Table({
 	tableName: 'tags',
@@ -45,4 +46,7 @@ export class Tag extends Model<
 
 	@BelongsToMany(() => Product, () => ProductTag)
 	declare products?: Product[];
+
+	@BelongsToMany(() => Tag, () => UserPreference)
+	declare userPreferences?: UserPreference[];
 }

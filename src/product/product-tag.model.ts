@@ -17,8 +17,7 @@ import {
 } from 'sequelize-typescript';
 
 import { Product } from '@/product/product.model';
-
-import { Tag } from './tag.model';
+import { Tag } from '@/tag/tag.model';
 
 @Table({
 	tableName: 'product_tags',

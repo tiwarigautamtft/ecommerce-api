@@ -1,49 +1,34 @@
 import { Router } from 'express';
 
 import { isSellerGuard } from '@/lib/guards';
+import { tagRouter } from '@/tag/tag.router';
 
 import { sellerController } from './seller.controller';
 
-export const sellerRouter: Router = Router();
+export const sellerRouter = Router();
+sellerRouter.post('/me', sellerController.createSellerProfile);
+sellerRouter.get('/me', sellerController.getSellerProfile);
+sellerRouter.delete('/me', isSellerGuard, sellerController.deleteSellerProfile);
+sellerRouter.use('/me/products', isSellerGuard, getProductSubRouter());
+sellerRouter.use('/me/orders', isSellerGuard, getOrderSubRouter());
 
-sellerRouter.post('/me', sellerController.createCurrentSellerProfile);
-sellerRouter.get('/me', sellerController.getCurrentSellerProfile);
-sellerRouter.delete(
-	'/me',
-	isSellerGuard,
-	sellerController.deleteCurrentSellerProfile,
-);
+function getProductSubRouter() {
+	const router = Router({ mergeParams: true });
+	router.get('/', sellerController.searchProducts);
+	router.post('/', sellerController.createProduct);
+	router.get('/:productId', sellerController.getProductById);
+	router.patch('/:productId', sellerController.updateProductById);
+	router.patch('/', sellerController.updatePublishedStatusOfAllProducts);
+	router.delete('/:productId', sellerController.deleteProductById);
+	router.delete('/', sellerController.deleteAllProducts);
+	router.use('/:productId/tags', tagRouter);
+	return router;
+}
 
-sellerRouter.get('/me/products', sellerController.searchOwnProducts);
-sellerRouter.post('/me/products', sellerController.createProduct);
-sellerRouter.get('/me/products/:productId', sellerController.getProductById);
-sellerRouter.patch(
-	'/me/products/:productId',
-	sellerController.updateProductById,
-);
-sellerRouter.patch(
-	'/me/products',
-	sellerController.updatePublishedStatusOfAllProducts,
-);
-sellerRouter.delete(
-	'/me/products/:productId',
-	sellerController.deleteProductById,
-);
-sellerRouter.delete('/me/products', sellerController.deleteAllProducts);
-
-sellerRouter.post(
-	'/me/products/:productId/tags',
-	sellerController.createProductTags,
-);
-sellerRouter.get(
-	'/me/products/:productId/tags',
-	sellerController.getProductTags,
-);
-sellerRouter.delete(
-	'/me/products/:productId/tags/:tagId',
-	sellerController.removeTagFromProduct,
-);
-
-sellerRouter.get('/me/orders', sellerController.getAllOrders);
-sellerRouter.get('/me/orders/:orderId', sellerController.getAnOrder);
-sellerRouter.patch('/me/order/:orderId', sellerController.updateOrderStatus);
+function getOrderSubRouter() {
+	const router = Router({ mergeParams: true });
+	router.get('/', sellerController.getAllOrders);
+	router.get('/:orderId', sellerController.getAnOrder);
+	router.patch('/:orderId', sellerController.updateOrderStatus);
+	return router;
+}

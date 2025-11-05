@@ -11,4 +11,4 @@ orderRouter.get('/', orderController.getAllOrders);
 orderRouter.get('/:orderId', orderController.getOrder);
 orderRouter.patch('/:orderId', orderController.cancelOrder);
 
-orderRouter.use('/', paymentRouter);
+orderRouter.use('/:orderId/payments', paymentRouter);

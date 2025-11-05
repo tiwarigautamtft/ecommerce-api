@@ -2,32 +2,34 @@ import assert from 'assert';
 import { RequestHandler } from 'express';
 import { StatusCodes } from 'http-status-codes';
 
+import { orderService } from '@/order/order.service';
+import { productService } from '@/product/product.service';
 import { RoleName } from '@/role/role.enum';
 
 import { sellerService } from './seller.service';
 
 export const sellerController: SellerController = {
-	getCurrentSellerProfile: async (req, res) => {
+	getSellerProfile: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const profile = await sellerService.getCurrentSellerProfile(req.user.id);
+		const profile = await sellerService.getSellerProfile(req.user.id);
 		res.status(StatusCodes.OK).json(profile);
 	},
 
-	createCurrentSellerProfile: async (req, res) => {
+	createSellerProfile: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const result = await sellerService.createCurrentSellerProfile(
+		const result = await sellerService.createSellerProfile(
 			req.user.id,
 			req.body,
 		);
 
-		req.user.roles = [...(req.user.roles || []), RoleName.SELLER];
+		req.user.roles.push(RoleName.SELLER);
 		const { userId, ...newProfile } = result.toJSON();
 		res.status(StatusCodes.CREATED).json(newProfile);
 	},
 
-	deleteCurrentSellerProfile: async (req, res) => {
+	deleteSellerProfile: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		await sellerService.deleteCurrentSellerProfile(req.user.id);
+		await sellerService.deleteSellerProfile(req.user.id);
 
 		req.user.roles = (req.user.roles || []).filter(
 			(role) => role !== RoleName.SELLER,
@@ -37,24 +39,31 @@ export const sellerController: SellerController = {
 
 	createProduct: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const product = await sellerService.createProduct(req.user.id, req.body);
+		const product = await productService.createProductForSeller(
+			req.user.id,
+			req.body,
+		);
 		res.status(StatusCodes.CREATED).json(product);
 	},
 
 	getAllProducts: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const products = await sellerService.getAllProducts(req.user.id);
+		const products = await productService.getAllProductsBySeller(req.user.id);
 		res.status(StatusCodes.OK).json(products);
 	},
 
 	getProductById: async (req, res) => {
-		const product = await sellerService.getProductById(req.params.productId);
+		assert(req.user, 'User must be authenticated');
+		const product = await productService.getProductBySeller(
+			req.user.id,
+			req.params.productId,
+		);
 		res.status(StatusCodes.OK).json(product);
 	},
 
 	updateProductById: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const product = await sellerService.updateProductById(
+		const product = await productService.updateProductBySeller(
 			req.user.id,
 			req.params.productId,
 			req.body,
@@ -64,19 +73,22 @@ export const sellerController: SellerController = {
 
 	deleteAllProducts: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		await sellerService.deleteAllProducts(req.user.id);
+		await productService.deleteAllProductsBySeller(req.user.id);
 		res.status(StatusCodes.OK).json({ message: 'All products deleted' });
 	},
 
 	deleteProductById: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		await sellerService.deleteProductById(req.user.id, req.params.productId);
+		await productService.deleteProductBySeller(
+			req.user.id,
+			req.params.productId,
+		);
 		res.status(StatusCodes.OK).json({ message: 'Product deleted' });
 	},
 
-	searchOwnProducts: async (req, res) => {
+	searchProducts: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const result = await sellerService.searchOwnProducts(
+		const result = await productService.searchProductsBySeller(
 			req.user.id,
 			req.query,
 		);
@@ -85,7 +97,7 @@ export const sellerController: SellerController = {
 
 	updatePublishedStatusOfAllProducts: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const result = await sellerService.updatePublishedStatusOfAllProducts(
+		const result = await productService.updatePublishedStatusBySeller(
 			req.user.id,
 			req.body,
 		);
@@ -96,55 +108,9 @@ export const sellerController: SellerController = {
 		});
 	},
 
-	createProductTags: async (req, res) => {
-		assert(req.user, 'User must be authenticated');
-		const result = await sellerService.createProductTags(
-			req.user.id,
-			req.params.productId,
-			req.body,
-		);
-
-		let message: string;
-		if (result.created.length === 0) {
-			message = `All ${result.skipped.length} tags already exist on this product.`;
-		} else if (result.skipped.length > 0) {
-			message = `Successfully added ${result.created.length} tags (${result.skipped.length} already existed)`;
-		} else {
-			message = `Successfully added ${result.created.length} tags`;
-		}
-
-		res.status(StatusCodes.OK).json({
-			message,
-			createdTags: result.created,
-			stats: {
-				created: result.created.length,
-				skipped: result.skipped.length,
-			},
-		});
-	},
-
-	getProductTags: async (req, res) => {
-		assert(req.user, 'User must be authenticated');
-		const tags = await sellerService.getProductTags(
-			req.user.id,
-			req.params.productId,
-		);
-		res.status(StatusCodes.OK).json(tags);
-	},
-
-	removeTagFromProduct: async (req, res) => {
-		assert(req.user, 'User must be authenticated');
-		await sellerService.removeTagFromProduct(
-			req.user.id,
-			req.params.productId,
-			req.params.tagId,
-		);
-		res.status(StatusCodes.OK).json({ message: 'Tag removed from product.' });
-	},
-
 	getAllOrders: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const orders = await sellerService.getAllOrders(req.user.id);
+		const orders = await orderService.getAllOrdersBySeller(req.user.id);
 		res.status(StatusCodes.OK).json({
 			orders: orders,
 			totalOrders: orders.length,
@@ -153,7 +119,7 @@ export const sellerController: SellerController = {
 
 	getAnOrder: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const order = await sellerService.getAnOrder(
+		const order = await orderService.getOrderBySeller(
 			req.user.id,
 			req.params.orderId,
 		);
@@ -162,7 +128,7 @@ export const sellerController: SellerController = {
 
 	updateOrderStatus: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const orderItem = await sellerService.updateOrderStatus(
+		const orderItem = await orderService.updateOrderStatusBySeller(
 			req.user.id,
 			req.params.orderId,
 			req.params.itemId,
@@ -173,22 +139,18 @@ export const sellerController: SellerController = {
 };
 
 interface SellerController {
-	getCurrentSellerProfile: RequestHandler;
-	createCurrentSellerProfile: RequestHandler;
-	deleteCurrentSellerProfile: RequestHandler;
+	getSellerProfile: RequestHandler;
+	createSellerProfile: RequestHandler;
+	deleteSellerProfile: RequestHandler;
 
-	searchOwnProducts: RequestHandler;
 	createProduct: RequestHandler;
 	getAllProducts: RequestHandler;
 	getProductById: RequestHandler;
 	updateProductById: RequestHandler;
-	updatePublishedStatusOfAllProducts: RequestHandler;
 	deleteAllProducts: RequestHandler;
 	deleteProductById: RequestHandler;
-
-	createProductTags: RequestHandler;
-	getProductTags: RequestHandler;
-	removeTagFromProduct: RequestHandler;
+	searchProducts: RequestHandler;
+	updatePublishedStatusOfAllProducts: RequestHandler;
 
 	getAllOrders: RequestHandler;
 	getAnOrder: RequestHandler;

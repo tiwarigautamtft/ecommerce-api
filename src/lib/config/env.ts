@@ -32,6 +32,9 @@ const EnvSchema = z
 		GOOGLE_CLIENT_ID: z.string(),
 		GOOGLE_CLIENT_SECRET: z.string(),
 
+		GOOGLE_AI_MODEL: z.string(),
+		GOOGLE_AI_API_KEY: z.string(),
+
 		REDIS_URL: z.url(),
 
 		RATE_LIMIT_WINDOW_MS: StringValueSchema,

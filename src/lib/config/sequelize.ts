@@ -8,9 +8,10 @@ import { Order } from '@/order/order.model';
 import { PaymentAttempt } from '@/payment/payment.model';
 import { ProductTag } from '@/product/product-tag.model';
 import { Product } from '@/product/product.model';
-import { Tag } from '@/product/tag.model';
 import { Role } from '@/role/role.model';
 import { Seller } from '@/seller/seller.model';
+import { Tag } from '@/tag/tag.model';
+import { UserPreference } from '@/user/user-preference.model';
 import { UserRole } from '@/user/user-role.model';
 import { User } from '@/user/user.model';
 
@@ -31,6 +32,7 @@ export const sequelize = new Sequelize(env.DB_URL, {
 		Order,
 		OrderItem,
 		PaymentAttempt,
+		UserPreference,
 	],
 });
 
