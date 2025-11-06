@@ -3,6 +3,7 @@ import { NotFound } from '@/lib/exceptions';
 import { generateTags, validateWithZodSchema } from '@/lib/utils';
 import { ProductTag } from '@/product/product-tag.model';
 import { Product } from '@/product/product.model';
+import { productService } from '@/product/product.service';
 
 import { CreateProductTagsDto } from './dto/create-product-tags.dto';
 import { Tag } from './tag.model';
@@ -15,54 +16,47 @@ export const tagService: TagService = {
 			'Invalid tags data',
 		);
 
-		const product = await Product.findByPk(productId);
-		if (!product) throw new NotFound('Product not found.');
-
-		return sequelize.transaction(async (transaction) => {
-			await Tag.bulkCreate(
-				tagNames.map((name) => ({ name })),
-				{ ignoreDuplicates: true, transaction },
-			);
-
-			const tags = await Tag.findAll({
-				where: { name: tagNames },
-				transaction,
-			});
-
-			await ProductTag.bulkCreate(
-				tags.map((tag) => ({ productId: product.id, tagId: tag.id })),
-				{
-					ignoreDuplicates: true,
-					returning: true,
-					transaction,
-				},
-			);
-
-			return tags;
-		});
+		// ensure that the product exists
+		const product = await productService.getProductById(productId);
+		return tagService.assignTags(product.id, tagNames);
 	},
 
 	generateProductTags: async (productId) => {
-		const product = await Product.findByPk(productId);
-		if (!product) throw new NotFound('Product not found.');
+		const product = await productService.getProductById(productId);
 		return tagService.generateAndAssignTags(product);
 	},
 
 	getProductTags: async (productId) => {
-		const product = await Product.findByPk(productId, {
-			include: [{ model: Tag, as: 'tags', through: { attributes: [] } }],
+		const tags = await Tag.findAll({
+			include: [
+				{
+					model: Product,
+					where: { id: productId },
+					attributes: [],
+					through: { attributes: [] },
+					required: true,
+				},
+			],
 		});
-		if (!product) throw new NotFound('Product not found.');
-		return product.tags!;
+		return tags || [];
 	},
 
 	getProductTag: async (productId, tagId) => {
-		const productTag = await ProductTag.findOne({
-			where: { productId, tagId },
-			include: [Tag],
+		const tag = await Tag.findOne({
+			where: { id: tagId },
+			include: [
+				{
+					model: Product,
+					where: { id: productId },
+					attributes: [],
+					through: { attributes: [] },
+					required: true,
+				},
+			],
 		});
-		if (!productTag) throw new NotFound('Tag not found on this product.');
-		return productTag.tag!;
+
+		if (!tag) throw new NotFound('Tag not found on this product.');
+		return tag;
 	},
 
 	removeProductTag: async (productId, tagId) => {
@@ -77,6 +71,10 @@ export const tagService: TagService = {
 	generateAndAssignTags: async (product) => {
 		const tagNames = await generateTags(product.name, product.description);
 
+		return tagService.assignTags(product.id, tagNames);
+	},
+
+	assignTags: async (productId, tagNames) => {
 		return sequelize.transaction(async (transaction) => {
 			const tags = await Tag.bulkCreate(
 				tagNames.map((tag) => ({ name: tag })),
@@ -89,7 +87,7 @@ export const tagService: TagService = {
 
 			await ProductTag.bulkCreate(
 				tags.map((tag) => ({
-					productId: product.id,
+					productId: productId,
 					tagId: tag.id,
 				})),
 				{
@@ -111,4 +109,5 @@ interface TagService {
 	removeProductTag: (productId: string, tagId: string) => Promise<void>;
 	removeAllProductTags: (productId: string) => Promise<void>;
 	generateAndAssignTags: (product: Product) => Promise<Tag[]>;
+	assignTags: (productId: string, tagNames: string[]) => Promise<Tag[]>;
 }
