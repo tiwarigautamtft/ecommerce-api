@@ -1,5 +1,4 @@
 import { emitter } from '@/lib/events/emitter';
-import { generatePreferences } from '@/lib/utils';
 import { OrderEvent } from '@/order/order.event';
 import { Order } from '@/order/order.model';
 import { ProductEvent } from '@/product/product.event';
@@ -20,7 +19,7 @@ export function registerListeners() {
 				nest: true,
 			});
 			const tagNames = tags.map((tag) => tag.name);
-			await userService.updatePreferences(userId, tagNames);
+			await userService.updatePreferences(userId, tagNames, 'viewed');
 		},
 	);
 

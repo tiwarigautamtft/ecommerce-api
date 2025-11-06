@@ -1,4 +1,5 @@
 import { emitter } from '@/lib/events/emitter';
+import { NotFound } from '@/lib/exceptions';
 import { generatePreferences } from '@/lib/utils';
 import { Tag } from '@/tag/tag.model';
 
@@ -8,25 +9,25 @@ import { User } from './user.model';
 
 export const userService: UserService = {
 	getUserById: async (userId) => {
-		return User.findByPk(userId);
+		const user = await User.findByPk(userId);
+		if (!user) throw new NotFound('User not found');
+		return user;
 	},
+
 	deleteUserById: async (userId) => {
 		await User.destroy({ where: { id: userId } });
-
 		emitter.emit(UserEvent.DELETED, userId);
 	},
 
 	getPreferences: async (userId) => {
-		return UserPreference.findAll({ where: { userId } });
+		return UserPreference.findAll({
+			where: { userId },
+			attributes: { exclude: ['userId', 'tagId'] },
+			include: [Tag],
+		});
 	},
 
-	updatePreferences: async (userId, tagNames) => {
-		const user = await userService.getUserById(userId);
-		if (!user) {
-			console.error(`User (${userId}) not found. Preferences not updated`);
-			return;
-		}
-
+	updatePreferences: async (userId, tagNames, context = 'viewed') => {
 		const existingPreferences = (await UserPreference.findAll({
 			where: { userId },
 			attributes: ['weight'],
@@ -37,7 +38,7 @@ export const userService: UserService = {
 
 		const preferences = await generatePreferences(
 			tagNames,
-			'viewed',
+			context,
 			existingPreferences,
 		);
 
@@ -70,5 +71,9 @@ interface UserService {
 	getUserById: (userId: string) => Promise<User | null>;
 	deleteUserById: (userId: string) => Promise<void>;
 	getPreferences: (userId: string) => Promise<UserPreference[]>;
-	updatePreferences: (userId: string, tagNames: string[]) => Promise<void>;
+	updatePreferences: (
+		userId: string,
+		tagNames: string[],
+		context?: 'viewed' | 'ordered',
+	) => Promise<void>;
 }
