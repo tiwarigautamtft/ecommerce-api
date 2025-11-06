@@ -4,7 +4,11 @@ import passport from 'passport';
 
 export const authController: AuthController = {
 	handleAuthCheck: (req, res) => {
-		res.send(req.isAuthenticated() ? req.user.email : 'Not Authenticated');
+		res.send(
+			req.isAuthenticated()
+				? req.user.email
+				: 'Not Authenticated<br/><a href="/api/auth/login/google">Login with Google</a>',
+		);
 	},
 
 	handleGoogleLogin: passport.authenticate('google', {
@@ -15,7 +19,7 @@ export const authController: AuthController = {
 		successRedirect: '/',
 		successMessage: true,
 
-		failureRedirect: '/login',
+		failureRedirect: '/',
 		failureMessage: true,
 	}),
 
