@@ -7,7 +7,7 @@ import { cartService } from './cart.service';
 export const cartController: CartController = {
 	getCart: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const cartItems = await cartService.getCart(req.user.id);
+		const cartItems = await cartService.getCartWithSummary(req.user.id);
 		res.status(StatusCodes.OK).json(cartItems);
 	},
 

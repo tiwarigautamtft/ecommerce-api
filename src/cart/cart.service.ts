@@ -1,11 +1,7 @@
-import {
-	Forbidden,
-	InternalServerError,
-	NotFound,
-	SequelizeUniqueConstraintError,
-} from '@/lib/exceptions';
+import { NotFound } from '@/lib/exceptions';
 import { validateWithZodSchema } from '@/lib/utils';
 import { Product } from '@/product/product.model';
+import { productService } from '@/product/product.service';
 
 import { CartItem } from './cart-item.model';
 import { AddToCartDto, UpdateCartDto } from './dto';
@@ -14,13 +10,14 @@ export const cartService: CartService = {
 	getCart: (userId) => {
 		return CartItem.findAll({
 			where: { userId },
+			attributes: { exclude: ['userId', 'productId'] },
 			include: [
 				{
 					model: Product,
-					as: 'product',
-					attributes: ['id', 'name', 'description', 'price'],
+					attributes: ['id', 'name', 'quantity', 'price'],
 				},
 			],
+			order: [['created_at', 'DESC']],
 		});
 	},
 
@@ -31,29 +28,20 @@ export const cartService: CartService = {
 			'Invalid cart data',
 		);
 
-		const product = await Product.findByPk(productId);
-		if (!product) {
-			throw new NotFound('Product not found.');
+		// ensure the product exists
+		await productService.getProductById(productId);
+
+		const [cartItem, isNewRecord] = await CartItem.findOrCreate({
+			where: { userId, productId },
+			defaults: { userId, productId, quantity },
+		});
+
+		if (!isNewRecord) {
+			cartItem.quantity += quantity;
+			await cartItem.save();
 		}
 
-		try {
-			const [cartItem] = await CartItem.findOrCreate({
-				where: { userId, productId },
-				defaults: { quantity },
-			});
-
-			if (!cartItem.isNewRecord) {
-				cartItem.quantity += quantity;
-				await cartItem.save();
-			}
-
-			return cartItem;
-		} catch (error) {
-			if ((error as any).name === 'SequelizeUniqueConstraintError') {
-				throw new SequelizeUniqueConstraintError('Product already in cart.');
-			}
-			throw new InternalServerError('Could not add to cart.');
-		}
+		return cartItem;
 	},
 
 	updateCartItem: async (userId, itemId, rawUpdateData) => {
@@ -63,77 +51,67 @@ export const cartService: CartService = {
 			'Invalid cart data',
 		);
 
-		const cartItem = await CartItem.findByPk(itemId);
+		const cartItem = await CartItem.findOne({
+			where: { id: itemId, userId },
+			attributes: { exclude: ['userId'] },
+		});
 		if (!cartItem) {
-			throw new NotFound('Cart Item not found.');
+			throw new NotFound('Cart Item not found in your cart.');
 		}
 
-		if (cartItem.userId !== userId) {
-			throw new Forbidden('Forbidden. This item is not in your cart.');
+		if (cartItem.quantity !== quantity) {
+			cartItem.quantity = quantity;
+			await cartItem.save({ fields: ['quantity'] });
 		}
-
-		cartItem.quantity = quantity;
-		await cartItem.save();
 		return cartItem;
 	},
 
 	removeFromCart: async (userId, itemId) => {
 		const result = await CartItem.destroy({ where: { id: itemId, userId } });
-		if (result === 0) {
-			throw new NotFound('Cart item not found.');
-		}
+		if (result === 0) throw new NotFound('Cart item not found.');
 	},
 
 	clearCart: async (userId) => {
 		await CartItem.destroy({ where: { userId } });
 	},
 
-	getCartWithTotals: async (userId) => {
+	getCartWithSummary: async (userId) => {
 		const cartItems = await cartService.getCart(userId);
+		const { validItems } = await cartService.validateCartItems(cartItems);
 
-		const total = cartItems.reduce((sum, item) => {
-			return sum + item.quantity * item.product.price;
-		}, 0);
-
-		const itemCount = cartItems.reduce((count, item) => {
-			return count + item.quantity;
-		}, 0);
+		const { total, count } = validItems.reduce(
+			(sum, item) => {
+				sum.total += item.quantity * item.product!.price;
+				sum.count += item.quantity;
+				return sum;
+			},
+			{ total: 0, count: 0 },
+		);
 
 		return {
-			items: cartItems,
+			items: validItems,
 			summary: {
 				total,
-				itemCount,
-				itemsCount: cartItems.length,
+				productsCount: validItems.length,
+				itemsCount: count,
 			},
 		};
 	},
 
-	validateCartItems: async (userId) => {
-		const cartItems = await CartItem.findAll({
-			where: { userId },
-			include: [Product],
+	validateCartItems: async (cartItems) => {
+		const invalidItems: CartItem[] = [];
+		const validItems: CartItem[] = [];
+		cartItems.forEach((cartItem) => {
+			const product = cartItem.product;
+			if (!product || product.quantity < cartItem.quantity) {
+				invalidItems.push(cartItem);
+			} else {
+				validItems.push(cartItem);
+			}
 		});
-
-		const validationResults = cartItems.map((cartItem) => {
-			const product = cartItem.Product;
-			return {
-				cartItemId: cartItem.id,
-				productId: product.id,
-				productName: product.name,
-				requestedQuantity: cartItem.quantity,
-				availableQuantity: product.quantity,
-				isValid: product.quantity >= cartItem.quantity,
-				price: product.price,
-			};
-		});
-
-		const allValid = validationResults.every((result) => result.isValid);
-		const invalidItems = validationResults.filter((result) => !result.isValid);
 
 		return {
-			allValid,
-			validationResults,
+			validItems,
 			invalidItems,
 		};
 	},
@@ -149,21 +127,11 @@ interface CartService {
 	) => Promise<CartItem>;
 	removeFromCart: (userId: string, itemId: string) => Promise<void>;
 	clearCart: (userId: string) => Promise<void>;
-	getCartWithTotals: (userId: string) => Promise<{
+	getCartWithSummary: (userId: string) => Promise<{
 		items: CartItem[];
-		summary: { total: number; itemCount: number; itemsCount: number };
+		summary: { total: number; productsCount: number; itemsCount: number };
 	}>;
-	validateCartItems: (userId: string) => Promise<{
-		allValid: boolean;
-		validationResults: Array<{
-			cartItemId: string;
-			productId: string;
-			productName: string;
-			requestedQuantity: number;
-			availableQuantity: number;
-			isValid: boolean;
-			price: number;
-		}>;
-		invalidItems: Array<any>;
-	}>;
+	validateCartItems: (
+		cartItems: CartItem[],
+	) => Promise<{ validItems: CartItem[]; invalidItems: CartItem[] }>;
 }
