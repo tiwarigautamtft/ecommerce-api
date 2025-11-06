@@ -17,7 +17,10 @@ export const userController: UserController = {
 		req.logout((error) => {
 			if (error) {
 				req.user = undefined;
-				console.error('User logged out manually');
+				console.error('User logged out manually:', error);
+				res
+					.status(StatusCodes.OK)
+					.json({ message: 'User deleted. Logged out manually' });
 			} else {
 				res
 					.status(StatusCodes.OK)

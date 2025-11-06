@@ -27,10 +27,13 @@ export const authController: AuthController = {
 		req.logout((error) => {
 			if (error) {
 				req.user = undefined;
-				console.error('User logged out manually');
+				console.error('User logged out manually', error);
+				res
+					.status(StatusCodes.OK)
+					.json({ message: 'Manual Logout Successful' });
+			} else {
+				res.status(StatusCodes.OK).json({ message: 'Logout Successful' });
 			}
-
-			res.status(StatusCodes.OK).json({ message: 'Logout Successful' });
 		}),
 };
 
