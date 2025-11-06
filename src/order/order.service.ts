@@ -18,13 +18,16 @@ import { OrderEvent } from './order.event';
 import { Order } from './order.model';
 
 export const orderService: OrderService = {
-	placeOrder: async (userId, rawOrderData, useCart = false) => {
-		const { shippingAddress: shippingAddressInput, items } =
-			await validateWithZodSchema(
-				PlaceOrderDto,
-				rawOrderData,
-				'Invalid order data',
-			);
+	placeOrder: async (userId, rawOrderData) => {
+		const {
+			shippingAddress: shippingAddressInput,
+			items,
+			cart: useCart,
+		} = await validateWithZodSchema(
+			PlaceOrderDto,
+			rawOrderData,
+			'Invalid data for placing an order',
+		);
 
 		const shippingAddressId = await addressService.resolveShippingAddress(
 			userId,
@@ -69,67 +72,108 @@ export const orderService: OrderService = {
 		emitter.emit(OrderEvent.ORDER_PLACED, userId, order);
 
 		return Order.findByPk(order.id, {
-			include: [OrderItem, Address],
+			attributes: { exclude: ['userId'] },
+			include: [
+				{
+					model: OrderItem,
+					attributes: { exclude: ['orderId'] },
+				},
+				{
+					model: Address,
+				},
+			],
 		});
 	},
 
-	resolveOrderItems: async (userId, useCart, directItems) => {
+	resolveOrderItems: async (userId, useCart, items) => {
+		const orderItems: { productId: string; quantity: number }[] = [];
 		if (useCart) {
 			const cartItems = await CartItem.findAll({
 				where: { userId },
-				include: [Product],
+				attributes: ['productId', 'quantity'],
 			});
-			if (cartItems.length === 0)
-				throw new UnprocessableEntity('Cart is empty.');
-			return cartItems.map((item) => ({
-				productId: item.productId,
-				quantity: item.quantity,
-			}));
+			orderItems.push(
+				...cartItems.map((item) => ({
+					productId: item.productId,
+					quantity: item.quantity,
+				})),
+			);
 		}
 
-		if (!directItems || directItems.length === 0) {
+		orderItems.push(...(items || []));
+
+		if (!orderItems || orderItems.length === 0) {
 			throw new UnprocessableEntity('No items provided for order.');
 		}
-		return directItems;
+		return orderItems;
 	},
 
 	validateAndPrepareOrderItems: async (orderItems) => {
+		const productIds = orderItems.map((item) => item.productId);
+
+		const products = await Product.findAll({
+			where: { id: productIds },
+		});
+
+		const productMap = new Map(products.map((p) => [p.id, p]));
 		let total = 0;
-		const orderItemsWithDetails = [];
+		const validOrderItems: {
+			productId: string;
+			sellerId: string;
+			productName: string;
+			unitPrice: number;
+			quantity: number;
+		}[] = [];
 
 		for (const item of orderItems) {
-			const product = await Product.findByPk(item.productId, {
-				include: [Seller],
-			});
-			if (!product)
-				throw new NotFound(`Product with ID ${item.productId} not found.`);
+			const product = productMap.get(item.productId);
+
+			if (!product) {
+				// TODO: Inform the user about missing product
+				console.warn(`Product ${item.productId} not found`);
+				continue;
+			}
+
 			if (product.quantity < item.quantity) {
-				throw new UnprocessableEntity(
-					`Insufficient stock for product ${product.name}. Available: ${product.quantity}, Requested: ${item.quantity}`,
-				);
+				// TODO: Inform the user about unavailable stocks
+				console.warn(`Insufficient stock for product ${product.name}`);
+				continue;
 			}
 
 			const itemTotal = product.price * item.quantity;
 			total += itemTotal;
 
-			orderItemsWithDetails.push({
+			validOrderItems.push({
 				productId: product.id,
 				sellerId: product.sellerId,
 				productName: product.name,
 				unitPrice: product.price,
 				quantity: item.quantity,
 			});
-
-			await product.update({ quantity: product.quantity - item.quantity });
 		}
 
-		return { orderItemsWithDetails, total };
+		await sequelize.transaction(async (transaction) => {
+			const updatePromises = validOrderItems.map((item) =>
+				Product.decrement('quantity', {
+					by: item.quantity,
+					where: { id: item.productId },
+					transaction,
+				}),
+			);
+			await Promise.all(updatePromises);
+		});
+
+		return { orderItemsWithDetails: validOrderItems, total };
 	},
 
 	getAllOrders: async (userId) => {
 		return Order.findAll({
 			where: { userId },
-			include: [{ model: OrderItem, include: [Product] }, Address],
+			attributes: { exclude: ['userId'] },
+			include: [
+				{ model: OrderItem, attributes: { exclude: ['orderId'] } },
+				Address,
+			],
 			order: [['created_at', 'DESC']],
 		});
 	},
@@ -137,21 +181,31 @@ export const orderService: OrderService = {
 	getOrder: async (userId, orderId) => {
 		const order = await Order.findOne({
 			where: { id: orderId, userId },
+			attributes: { exclude: ['userId'] },
 			include: [
-				{ model: OrderItem, include: [Product, Seller] },
+				{
+					model: OrderItem,
+					attributes: { exclude: ['orderId'] },
+					include: [{ model: Seller, attributes: ['storeName'] }],
+				},
 				Address,
 				PaymentAttempt,
 			],
 		});
 
 		if (!order) throw new NotFound('Order not found.');
-		return order;
+		return { order, status: await orderService.getOrderStatus(order.id) };
 	},
 
 	cancelOrder: async (userId, orderId) => {
 		const order = await Order.findOne({
 			where: { id: orderId, userId },
-			include: [OrderItem],
+			include: [
+				{
+					model: OrderItem,
+					attributes: ['id', 'productId', 'status'],
+				},
+			],
 		});
 
 		if (!order) throw new NotFound('Order not found.');
@@ -166,23 +220,39 @@ export const orderService: OrderService = {
 		}
 
 		await sequelize.transaction(async (transaction) => {
-			for (const item of cancellableItems) {
-				await item.update(
+			const productIds = cancellableItems.map((item) => item.productId);
+			const products = await Product.findAll({
+				where: { id: productIds },
+				attributes: ['id', 'quantity'],
+				transaction,
+			});
+			const productIdToProduct = new Map(products.map((p) => [p.id, p]));
+
+			await Promise.all([
+				OrderItem.update(
 					{
 						status: OrderItemStatus.CANCELLED,
 						cancelledBy: CancellationBy.BUYER,
 					},
-					{ transaction },
-				);
+					{
+						where: {
+							id: cancellableItems.map((item) => item.id),
+						},
+						transaction,
+					},
+				),
 
-				const product = await Product.findByPk(item.productId);
-				if (product) {
-					await product.update(
-						{ quantity: product.quantity + item.quantity },
-						{ transaction },
-					);
-				}
-			}
+				...cancellableItems.map((item) => {
+					const product = productIdToProduct.get(item.productId);
+					if (product) {
+						return product.increment('quantity', {
+							by: item.quantity,
+							transaction,
+						});
+					}
+					return Promise.resolve();
+				}),
+			]);
 		});
 
 		return Order.findByPk(orderId, { include: [OrderItem, Address] });
@@ -199,8 +269,7 @@ export const orderService: OrderService = {
 		);
 
 		return {
-			orderId,
-			statusCounts,
+			...statusCounts,
 			totalItems: orderItems.length,
 		};
 	},
@@ -353,13 +422,15 @@ interface OrderService {
 		total: number;
 	}>;
 	getAllOrders: (userId: string) => Promise<Order[]>;
-	getOrder: (userId: string, orderId: string) => Promise<Order>;
-	cancelOrder: (userId: string, orderId: string) => Promise<Order | null>;
-	getOrderStatus: (orderId: string) => Promise<{
-		orderId: string;
-		statusCounts: Record<string, number>;
-		totalItems: number;
+	getOrder: (
+		userId: string,
+		orderId: string,
+	) => Promise<{
+		order: Order;
+		status: OrderStatus;
 	}>;
+	cancelOrder: (userId: string, orderId: string) => Promise<Order | null>;
+	getOrderStatus: (orderId: string) => Promise<OrderStatus>;
 	getAllOrdersBySeller: (userId: string) => Promise<
 		Array<{
 			id: string;
@@ -404,3 +475,4 @@ interface OrderService {
 		rawStatusData: any,
 	) => Promise<OrderItem>;
 }
+type OrderStatus = Record<OrderItemStatus, number> | { totalItems: number };

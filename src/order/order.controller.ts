@@ -7,8 +7,7 @@ import { orderService } from './order.service';
 export const orderController: OrderController = {
 	placeOrder: async (req, res) => {
 		assert(req.user, 'User must be authenticated');
-		const useCart = req.query.cart === 'true';
-		const order = await orderService.placeOrder(req.user.id, req.body, useCart);
+		const order = await orderService.placeOrder(req.user.id, req.body);
 		res.status(StatusCodes.CREATED).json(order);
 	},
 
@@ -32,6 +31,12 @@ export const orderController: OrderController = {
 		);
 		res.status(StatusCodes.OK).json(order);
 	},
+
+	getOrderStatus: async (req, res) => {
+		assert(req.user, 'User must be authenticated');
+		const status = await orderService.getOrderStatus(req.params.orderId);
+		res.status(StatusCodes.OK).json(status);
+	},
 };
 
 interface OrderController {
@@ -39,4 +44,5 @@ interface OrderController {
 	getAllOrders: RequestHandler;
 	getOrder: RequestHandler;
 	cancelOrder: RequestHandler;
+	getOrderStatus: RequestHandler;
 }

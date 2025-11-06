@@ -17,6 +17,7 @@ export const PlaceOrderDto = z.object({
 		])
 		.optional(),
 	items: z.array(OrderItemDto).optional(),
+	cart: z.boolean().optional().default(true),
 });
 
 export type PlaceOrderDtoType = z.infer<typeof PlaceOrderDto>;
