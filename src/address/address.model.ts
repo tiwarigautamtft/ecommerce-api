@@ -10,6 +10,7 @@ import {
 	Column,
 	DataType,
 	Default,
+	DefaultScope,
 	ForeignKey,
 	HasMany,
 	Model,
@@ -20,6 +21,13 @@ import {
 import { Order } from '@/order/order.model';
 import { User } from '@/user/user.model';
 
+@DefaultScope(() => ({
+	attributes: { exclude: ['userId'] },
+	order: [
+		['is_default', 'DESC'],
+		['created_at', 'DESC'],
+	],
+}))
 @Table({
 	tableName: 'addresses',
 	timestamps: true,

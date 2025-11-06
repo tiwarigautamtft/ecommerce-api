@@ -1,26 +1,20 @@
+import { Transaction } from 'sequelize';
+
 import { sequelize } from '@/lib/config';
-import {
-	NotFound,
-	SequelizeUniqueConstraintError,
-	UnprocessableEntity,
-} from '@/lib/exceptions';
+import { NotFound, SequelizeUniqueConstraintError } from '@/lib/exceptions';
 import { validateWithZodSchema } from '@/lib/utils';
 
 import { Address } from './address.model';
 import {
 	CreateAddressDto,
+	CreateAddressDtoType,
 	UpdateAddressDto,
-	UpdateAddressDtoType,
 } from './dto';
 
 export const addressService: AddressService = {
 	getAllAddresses: (userId) => {
 		return Address.findAll({
 			where: { userId },
-			order: [
-				['is_default', 'DESC'],
-				['created_at', 'DESC'],
-			],
 		});
 	},
 
@@ -44,24 +38,20 @@ export const addressService: AddressService = {
 		);
 
 		try {
-			return sequelize.transaction(async (transaction) => {
-				if (addressData.isDefault) {
-					await Address.update(
-						{ isDefault: false },
-						{ where: { userId, isDefault: true }, transaction },
-					);
-				}
-
-				const address = await Address.create(
-					{
-						...addressData,
-						userId,
-					},
-					{ transaction },
-				);
-
-				return address;
+			const { isDefault, ...addressDataWithoutDefault } = addressData;
+			let address = await Address.create({
+				...addressDataWithoutDefault,
+				userId,
 			});
+
+			if (isDefault) {
+				address = (await addressService.setDefaultAddress(
+					userId,
+					address.id,
+				)) as Address;
+			}
+
+			return address;
 		} catch (error) {
 			if ((error as any)?.name === 'SequelizeUniqueConstraintError') {
 				throw new SequelizeUniqueConstraintError(
@@ -73,29 +63,37 @@ export const addressService: AddressService = {
 	},
 
 	updateAddress: async (userId, addressId, rawUpdateData) => {
-		const updateData = await validateWithZodSchema(
-			UpdateAddressDto,
-			rawUpdateData,
-			'Invalid address data',
-		);
-
-		const address = await Address.findOne({
-			where: { id: addressId, userId },
-		});
-
-		if (!address) {
-			throw new NotFound('Address not found.');
-		}
-
-		if (updateData.isDefault) {
-			await Address.update(
-				{ isDefault: false },
-				{ where: { userId, isDefault: true } },
+		const { isDefault, ...updateDataWithoutDefault } =
+			await validateWithZodSchema(
+				UpdateAddressDto,
+				rawUpdateData,
+				'Invalid address data',
 			);
-		}
 
-		await address.update(updateData);
-		return address;
+		return sequelize.transaction(async (transaction) => {
+			const address = await Address.findOne({
+				where: { id: addressId, userId },
+				transaction,
+			});
+
+			if (!address) {
+				throw new NotFound('Address not found.');
+			}
+			await address.update(updateDataWithoutDefault, { transaction });
+
+			if (isDefault !== undefined) {
+				if (isDefault) {
+					await addressService.setDefaultAddress(
+						userId,
+						address.id,
+						transaction,
+					);
+				} else if (address.isDefault) {
+					await address.update({ isDefault: false }, { transaction });
+				}
+			}
+			return address.reload({ transaction });
+		});
 	},
 
 	deleteAddress: async (userId, addressId) => {
@@ -110,26 +108,26 @@ export const addressService: AddressService = {
 		await address.destroy();
 	},
 
-	setDefaultAddress: (userId, addressId) => {
-		return sequelize.transaction(async (transaction) => {
-			// Clear existing default
-			await Address.update(
-				{ isDefault: false },
-				{ where: { userId, isDefault: true }, transaction },
-			);
+	setDefaultAddress: async (userId, addressId, parentTransaction) => {
+		const transaction = parentTransaction || (await sequelize.transaction());
 
-			// Set new default
-			const [affectedCount] = await Address.update(
-				{ isDefault: true },
-				{ where: { id: addressId, userId }, transaction },
-			);
+		// Clear existing default
+		await Address.update(
+			{ isDefault: false },
+			{ where: { userId, isDefault: true }, transaction },
+		);
 
-			if (affectedCount === 0) {
-				throw new NotFound('Address not found.');
-			}
+		// Set new default
+		await Address.update(
+			{ isDefault: true },
+			{ where: { id: addressId, userId }, transaction },
+		);
 
-			return Address.findByPk(addressId);
-		});
+		if (!parentTransaction) {
+			await transaction.commit();
+		}
+
+		return Address.findByPk(addressId);
 	},
 
 	hasAddresses: async (userId): Promise<boolean> => {
@@ -149,49 +147,6 @@ export const addressService: AddressService = {
 		return address;
 	},
 
-	validateAddressOwnership: async (userId, addressId) => {
-		const count = await Address.count({
-			where: { id: addressId, userId },
-		});
-		return count > 0;
-	},
-
-	bulkUpdateAddresses: (userId, updates) => {
-		return sequelize.transaction(async (transaction) => {
-			const results = [];
-
-			for (const { addressId, data: rawData } of updates) {
-				const address = await Address.findOne({
-					where: { id: addressId, userId },
-					transaction,
-				});
-
-				if (!address) {
-					throw new NotFound(`Address with ID ${addressId} not found.`);
-				}
-
-				const updateData = await validateWithZodSchema(
-					UpdateAddressDto,
-					rawData,
-					`Invalid data for address ${addressId}`,
-				);
-
-				// Handle default address logic
-				if (updateData.isDefault) {
-					await Address.update(
-						{ isDefault: false },
-						{ where: { userId, isDefault: true }, transaction },
-					);
-				}
-
-				await address.update(updateData, { transaction });
-				results.push(address);
-			}
-
-			return results;
-		});
-	},
-
 	getAddressByAlias: async (userId, alias) => {
 		const address = await Address.findOne({
 			where: { userId, alias },
@@ -207,12 +162,7 @@ export const addressService: AddressService = {
 	getAddressesByCity: async (userId, city) => {
 		return Address.findAll({
 			where: { userId, city },
-			order: [['is_default', 'DESC']],
 		});
-	},
-
-	getAddressCount: async (userId) => {
-		return Address.count({ where: { userId } });
 	},
 
 	resolveShippingAddress: async (userId, shippingAddressInput) => {
@@ -228,16 +178,10 @@ export const addressService: AddressService = {
 		}
 
 		if (typeof shippingAddressInput === 'object') {
-			if (shippingAddressInput.isDefault) {
-				await Address.update(
-					{ isDefault: false },
-					{ where: { userId, isDefault: true } },
-				);
-			}
-			const newAddress = await Address.create({
-				...shippingAddressInput,
+			const newAddress = await addressService.createAddress(
 				userId,
-			});
+				shippingAddressInput,
+			);
 			return newAddress.id;
 		}
 
@@ -245,7 +189,7 @@ export const addressService: AddressService = {
 			where: { userId, isDefault: true },
 		});
 		if (!defaultAddress) {
-			throw new UnprocessableEntity(
+			throw new NotFound(
 				'No default address found. Please provide a shipping address.',
 			);
 		}
@@ -266,25 +210,14 @@ interface AddressService {
 	setDefaultAddress: (
 		userId: string,
 		addressId: string,
+		parentTransaction?: Transaction,
 	) => Promise<Address | null>;
 	hasAddresses: (userId: string) => Promise<boolean>;
 	getDefaultAddress: (userId: string) => Promise<Address>;
-	validateAddressOwnership: (
-		userId: string,
-		addressId: string,
-	) => Promise<boolean>;
-	bulkUpdateAddresses: (
-		userId: string,
-		updates: Array<{
-			addressId: string;
-			data: Partial<UpdateAddressDtoType>;
-		}>,
-	) => Promise<Address[]>;
 	getAddressByAlias: (userId: string, alias: string) => Promise<Address>;
 	getAddressesByCity: (userId: string, city: string) => Promise<Address[]>;
-	getAddressCount: (userId: string) => Promise<number>;
 	resolveShippingAddress: (
 		userId: string,
-		shippingAddressInput: any,
+		shippingAddressInput?: string | CreateAddressDtoType | undefined,
 	) => Promise<string>;
 }
