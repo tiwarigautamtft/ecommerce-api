@@ -7,6 +7,7 @@ import { sequelize } from '@/lib/config';
 import { emitter } from '@/lib/events/emitter';
 import { BadRequest, NotFound, UnprocessableEntity } from '@/lib/exceptions';
 import { validateWithZodSchema } from '@/lib/utils';
+import { PaymentStatus } from '@/payment/payment-status.enum';
 import { PaymentAttempt } from '@/payment/payment.model';
 import { Product } from '@/product/product.model';
 import { Seller } from '@/seller/seller.model';
@@ -281,16 +282,13 @@ export const orderService: OrderService = {
 		});
 		if (!seller) throw new NotFound('Seller profile not found.');
 
-		const orders = await Order.findAll({
+		const orders = await Order.scope('seller').findAll({
 			include: [
 				{
 					model: OrderItem,
 					where: { sellerId: seller.id },
-					include: [Product],
 					required: true,
-					order: [['productName', 'ASC']],
 				},
-				{ model: Address, as: 'shippingAddress' },
 			],
 			order: [['created_at', 'DESC']],
 		});
@@ -299,17 +297,18 @@ export const orderService: OrderService = {
 			id: order.id,
 			orderNumber: order.orderNumber,
 			totalAmount: order.total,
-			shippingAddress: order.shippingAddress!,
 			createdAt: order.createdAt,
 			updatedAt: order.updatedAt,
-			orderItems: order.orderItems!.map((item) => ({
-				id: item.id,
-				product: item.product,
-				quantity: item.quantity,
-				unitPrice: item.unitPrice,
-				status: item.status,
-				cancelledBy: item.cancelledBy,
-			})),
+			shippingAddress: order.shippingAddress!,
+			orderItems:
+				order.orderItems?.map((item) => ({
+					id: item.id,
+					productName: item.productName,
+					quantity: item.quantity,
+					unitPrice: item.unitPrice,
+					status: item.status,
+					cancelledBy: item.cancelledBy,
+				})) || [],
 		}));
 	},
 
@@ -320,17 +319,14 @@ export const orderService: OrderService = {
 		});
 		if (!seller) throw new NotFound('Seller profile not found.');
 
-		const order = await Order.findOne({
+		const order = await Order.scope('seller').findOne({
 			where: { id: orderId },
 			include: [
 				{
 					model: OrderItem,
 					where: { sellerId: seller.id },
-					include: [Product],
 					required: true,
-					order: [['productName', 'ASC']],
 				},
-				{ model: Address, as: 'shippingAddress' },
 			],
 			order: [['created_at', 'DESC']],
 		});
@@ -347,12 +343,12 @@ export const orderService: OrderService = {
 			id: order.id,
 			orderNumber: order.orderNumber,
 			totalAmount: order.total,
-			shippingAddress: order.shippingAddress!,
 			createdAt: order.createdAt,
 			updatedAt: order.updatedAt,
+			shippingAddress: order.shippingAddress!,
 			orderItems: order.orderItems.map((item) => ({
 				id: item.id,
-				product: item.product,
+				productName: item.productName,
 				quantity: item.quantity,
 				unitPrice: item.unitPrice,
 				status: item.status,
@@ -431,43 +427,8 @@ interface OrderService {
 	}>;
 	cancelOrder: (userId: string, orderId: string) => Promise<Order | null>;
 	getOrderStatus: (orderId: string) => Promise<OrderStatus>;
-	getAllOrdersBySeller: (userId: string) => Promise<
-		Array<{
-			id: string;
-			orderNumber: string;
-			totalAmount: number;
-			createdAt: Date;
-			updatedAt: Date;
-			shippingAddress: Address;
-			orderItems: Array<{
-				id: string;
-				product: Product | undefined | null;
-				quantity: number;
-				unitPrice: number;
-				status: OrderItemStatus;
-				cancelledBy: CancellationBy;
-			}>;
-		}>
-	>;
-	getOrderBySeller: (
-		userId: string,
-		orderId: string,
-	) => Promise<{
-		id: string;
-		orderNumber: string;
-		totalAmount: number;
-		createdAt: Date;
-		updatedAt: Date;
-		shippingAddress: Address;
-		orderItems: Array<{
-			id: string;
-			product: Product | undefined | null;
-			quantity: number;
-			unitPrice: number;
-			status: OrderItemStatus;
-			cancelledBy: CancellationBy;
-		}>;
-	}>;
+	getAllOrdersBySeller: (userId: string) => Promise<SellerOrder[]>;
+	getOrderBySeller: (userId: string, orderId: string) => Promise<SellerOrder>;
 	updateOrderStatusBySeller: (
 		userId: string,
 		orderId: string,
@@ -476,3 +437,20 @@ interface OrderService {
 	) => Promise<OrderItem>;
 }
 type OrderStatus = Record<OrderItemStatus, number> | { totalItems: number };
+
+interface SellerOrder {
+	id: string;
+	orderNumber: string;
+	totalAmount: number;
+	createdAt: Date;
+	updatedAt: Date;
+	shippingAddress: Address;
+	orderItems: Array<{
+		id: string;
+		productName: string;
+		quantity: number;
+		unitPrice: number;
+		status: OrderItemStatus;
+		cancelledBy: CancellationBy;
+	}>;
+}

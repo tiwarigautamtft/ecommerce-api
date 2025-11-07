@@ -16,10 +16,12 @@ import {
 	HasMany,
 	Model,
 	PrimaryKey,
+	Scopes,
 	Table,
 } from 'sequelize-typescript';
 
 import { Address } from '@/address/address.model';
+import { PaymentStatus } from '@/payment/payment-status.enum';
 import { PaymentAttempt } from '@/payment/payment.model';
 import { User } from '@/user/user.model';
 
@@ -33,6 +35,26 @@ function createOrderNumber() {
 	return createCuid().toUpperCase();
 }
 
+@Scopes(() => ({
+	seller: {
+		include: [
+			{
+				model: PaymentAttempt,
+				required: true,
+				where: { status: PaymentStatus.SUCCESS },
+				attributes: [],
+			},
+			{
+				model: Address,
+				as: 'shippingAddress',
+				required: true,
+				attributes: {
+					exclude: ['userId', 'alias', 'isDefault', 'createdAt', 'updatedAt'],
+				},
+			},
+		],
+	},
+}))
 @Table({
 	tableName: 'orders',
 	timestamps: true,

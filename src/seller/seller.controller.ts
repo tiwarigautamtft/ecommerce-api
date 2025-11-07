@@ -112,8 +112,8 @@ export const sellerController: SellerController = {
 		assert(req.user, 'User must be authenticated');
 		const orders = await orderService.getAllOrdersBySeller(req.user.id);
 		res.status(StatusCodes.OK).json({
-			orders: orders,
 			totalOrders: orders.length,
+			orders: orders,
 		});
 	},
 

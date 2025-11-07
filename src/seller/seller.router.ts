@@ -29,6 +29,6 @@ function getOrderSubRouter() {
 	const router = Router({ mergeParams: true });
 	router.get('/', sellerController.getAllOrders);
 	router.get('/:orderId', sellerController.getAnOrder);
-	router.patch('/:orderId', sellerController.updateOrderStatus);
+	router.put('/:orderId/items/:itemId', sellerController.updateOrderStatus);
 	return router;
 }
