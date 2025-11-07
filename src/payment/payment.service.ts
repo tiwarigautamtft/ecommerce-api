@@ -1,23 +1,32 @@
-import sequelize from 'sequelize';
+import sequelize, { Op } from 'sequelize';
 
-import { NotFound } from '@/lib/exceptions';
-import { validateWithZodSchema } from '@/lib/utils';
+import { BadRequest, NotFound } from '@/lib/exceptions';
 import { Order } from '@/order/order.model';
-import { CreatePaymentDto } from '@/user/dto';
 
 import { PaymentStatus } from './payment-status.enum';
 import { PaymentAttempt } from './payment.model';
 
 export const paymentService: PaymentService = {
-	makePaymentForOrder: async (userId, orderId, rawPaymentData) => {
-		const { amount } = await validateWithZodSchema(
-			CreatePaymentDto,
-			rawPaymentData,
-			'Invalid payment data',
-		);
-
-		const order = await Order.findOne({ where: { id: orderId, userId } });
+	makePaymentForOrder: async (userId, orderId) => {
+		const order = await Order.findOne({
+			where: { id: orderId, userId },
+			attributes: ['id', 'total'],
+			include: [
+				{
+					model: PaymentAttempt,
+					attributes: ['status'],
+					where: { status: { [Op.ne]: PaymentStatus.FAILURE } },
+					order: [['created_at', 'DESC']],
+				},
+			],
+		});
 		if (!order) throw new NotFound('Order not found.');
+
+		if (order.paymentAttempts?.length !== 0) {
+			throw new BadRequest(`Payment already done for this order.`, {
+				paymentStatus: order.paymentAttempts![0].status,
+			});
+		}
 
 		const isSuccess = Math.random() > 0.3;
 		const mockPaymentStatus = isSuccess
@@ -26,16 +35,20 @@ export const paymentService: PaymentService = {
 
 		const paymentAttempt = await PaymentAttempt.create({
 			orderId: order.id,
-			amount,
+			amount: order.total,
 			status: mockPaymentStatus,
 		});
 
+		// 1 sec delay to simulate a payment
 		await new Promise((resolve) => setTimeout(resolve, 1000));
 		return paymentAttempt;
 	},
 
 	getAllPaymentsForOrder: async (userId, orderId) => {
-		const order = await Order.findOne({ where: { id: orderId, userId } });
+		const order = await Order.findOne({
+			where: { id: orderId, userId },
+			attributes: ['id'],
+		});
 		if (!order) throw new NotFound('Order not found.');
 
 		return PaymentAttempt.findAll({
@@ -56,28 +69,20 @@ export const paymentService: PaymentService = {
 		return paymentAttempt;
 	},
 
-	getPaymentStats: async (userId) => {
-		const orders = await Order.findAll({ where: { userId } });
-		const orderIds = orders.map((order) => order.id);
+	getPaymentStatusForOrder: async (userId, orderId) => {
+		const order = await Order.findOne({ where: { id: orderId, userId } });
+		if (!order) throw new NotFound('Order not found.');
 
-		const payments = await PaymentAttempt.findAll({
-			where: { orderId: orderIds },
-			attributes: ['status', [sequelize.fn('COUNT', '*'), 'count']],
-			group: ['status'],
+		const latestPayment = await PaymentAttempt.findOne({
+			where: { orderId: order.id },
+			order: [['created_at', 'DESC']],
 		});
 
-		const totalAmount = await PaymentAttempt.sum('amount', {
-			where: { orderId: orderIds, status: PaymentStatus.SUCCESS },
-		});
+		if (!latestPayment) {
+			return { paymentStatus: 'No payments made yet.' };
+		}
 
-		return {
-			totalOrders: orders.length,
-			paymentStats: payments.reduce((acc, payment) => {
-				acc[payment.status] = parseInt(payment.get('count') as string);
-				return acc;
-			}, {}),
-			totalRevenue: totalAmount || 0,
-		};
+		return { paymentStatus: latestPayment.status };
 	},
 };
 
@@ -85,7 +90,6 @@ interface PaymentService {
 	makePaymentForOrder: (
 		userId: string,
 		orderId: string,
-		rawPaymentData: any,
 	) => Promise<PaymentAttempt>;
 	getAllPaymentsForOrder: (
 		userId: string,
@@ -96,9 +100,10 @@ interface PaymentService {
 		orderId: string,
 		paymentId: string,
 	) => Promise<PaymentAttempt>;
-	getPaymentStats: (userId: string) => Promise<{
-		totalOrders: number;
-		paymentStats: Record<string, number>;
-		totalRevenue: number;
+	getPaymentStatusForOrder: (
+		userId: string,
+		orderId: string,
+	) => Promise<{
+		paymentStatus: string;
 	}>;
 }
